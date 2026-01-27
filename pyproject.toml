@@ -3,31 +3,105 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "yandex-bot-py"
-version = "1.0.6"
-description = "Python Yandex messenger bot api"
+name = "yandex-messenger-bot-async"
+version = "0.1.0"
+description = "Async Python client for Yandex Messenger Bot API with production-safe defaults"
 authors = [
-    {name = "dimankaboski", email = "dimankab@gmail.com"},
+    {name = "yandex-bot-async contributors", email = ""},
 ]
 license = {text = "MIT"}
 readme = "README.md"
-Requires-Python = ">=3.12"
-Requires-Dist = "requests>=2.32.3"
-keywords = ["yandex", "bot", "api", "tools", "messenger"]
+requires-python = ">=3.11"
+keywords = ["yandex", "bot", "api", "async", "messenger", "httpx"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Environment :: Console",
-    "License :: OSI Approved :: MIT License"
+    "Programming Language :: Python :: 3 :: Only",
+    "Typing :: Typed",
 ]
+
 dependencies = [
-    "requests >= 2.32.3",
+    "httpx>=0.27.0",
+    "pydantic>=2.0.0",
+    "anyio>=3.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+    "types-requests",
+    "structlog>=23.1.0",
 ]
 
 [project.urls]
-Homepage = "https://github.com/dimankaboski/yandex-bot-py"
-Repository = "https://github.com/dimankaboski/yandex-bot-py"
-Issues = "https://github.com/dimankaboski/yandex-bot-py/issues"
+Homepage = "https://github.com/your-org/yandex-messenger-bot-async"
+Repository = "https://github.com/your-org/yandex-messenger-bot-async"
+Issues = "https://github.com/your-org/yandex-messenger-bot-async/issues"
 
 [tool.hatch.build.targets.wheel]
-include = ["yandex_bot/*"]
+packages = ["src/ymbot_async"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = "structlog.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--cov=ymbot_async",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
