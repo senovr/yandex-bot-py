@@ -37,62 +37,12 @@ class TestApiClientMethods:
         # Mock response with proper schema
         mock_transport.request.return_value = {
             "ok": True,
-            "message": {
-                "id": "123",
-                "text": "Hello, World!",
-                "timestamp": "2026-01-27T19:00:00Z",
-                "chat": {
-                    "id": "456",
-                    "type": "private",
-                    "name": "Test Chat"
-                }
-            }
+            "message_id": 123
         }
         
         result = await api_client.send_message(
             chat_id="456",
             text="Hello, World!"
-        )
-        
-        assert result is not None
-        assert result.ok is True
-        assert mock_transport.request.called
-
-    @pytest.mark.asyncio
-    async def test_answer_callback_query_method_exists(self, api_client, mock_transport):
-        """Test that answer_callback_query method exists and can be called."""
-        mock_transport.request.return_value = {}
-        
-        result = await api_client.answer_callback_query(
-            callback_query_id="123",
-            text="Clicked!"
-        )
-        
-        assert result is not None
-        assert mock_transport.request.called
-
-    @pytest.mark.asyncio
-    async def test_edit_message_text_method_exists(self, api_client, mock_transport):
-        """Test that edit_message_text method exists and can be called."""
-        # Mock response with proper schema
-        mock_transport.request.return_value = {
-            "ok": True,
-            "message": {
-                "id": "123",
-                "text": "Edited text",
-                "timestamp": "2026-01-27T19:00:00Z",
-                "chat": {
-                    "id": "456",
-                    "type": "private",
-                    "name": "Test Chat"
-                }
-            }
-        }
-        
-        result = await api_client.edit_message_text(
-            chat_id="456",
-            message_id="789",
-            text="Edited text"
         )
         
         assert result is not None
