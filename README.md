@@ -293,6 +293,706 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
+## Примеры
+
+### 1. Эхо-бот
+
+Простой бот, который повторяет сообщения пользователя:
+
+```python
+import asyncio
+from ymbot_async import Bot, BotConfig
+
+async def main():
+    config = BotConfig(token="your_bot_token")
+    
+    async with Bot(config) as bot:
+        @bot.message_handler()
+        async def echo_handler(update):
+            # Повторяем сообщение пользователя
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text=update.message.text or "Вы отправили сообщение без текста",
+            )
+        
+        await bot.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 2. Бот справка с командами
+
+Бот с базовыми командами для предоставления информации:
+
+```python
+import asyncio
+from ymbot_async import Bot, BotConfig, CommandFilter
+
+async def main():
+    config = BotConfig(token="your_bot_token")
+    
+    async with Bot(config) as bot:
+        # Команда /start - приветствие
+        @bot.message_handler(commands=["start"])
+        async def start_handler(update):
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text=(
+                    "👋 Привет! Я справочный бот.\n\n"
+                    "Доступные команды:\n"
+                    "/start - Начать работу\n"
+                    "/help - Справка\n"
+                    "/about - О проекте"
+                ),
+            )
+        
+        # Команда /help - справка
+        @bot.message_handler(commands=["help"])
+        async def help_handler(update):
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text=(
+                    "📚 Справка по использованию:\n\n"
+                    "• Отправьте любое сообщение - получите ответ\n"
+                    "• Используйте команды для навигации\n"
+                    "• Поддержка работает 24/7"
+                ),
+            )
+        
+        # Команда /about - о проекте
+        @bot.message_handler(commands=["about"])
+        async def about_handler(update):
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text="🚀 Бот на Yandex Messenger Bot Async Client v1.0",
+            )
+        
+        await bot.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 3. Бот-опросник
+
+Интерактивный бот, который проводит опрос через инлайн-кнопки:
+
+```python
+import asyncio
+from ymbot_async import (
+    Bot, BotConfig, CommandFilter, 
+    InlineButton, InlineKeyboardMarkup, CallbackDataFilter
+)
+
+async def main():
+    config = BotConfig(token="your_bot_token")
+    
+    async with Bot(config) as bot:
+        # Команда /survey - начало опроса
+        @bot.message_handler(commands=["survey"])
+        async def survey_handler(update):
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineButton(text="🔵 Хорошо", callback_data="good"),
+                        InlineButton(text="⚪ Удовлетворительно", callback_data="ok"),
+                        InlineButton(text="🔴 Плохо", callback_data="bad"),
+                    ],
+                    [
+                        InlineButton(text="❌ Отмена", callback_data="cancel"),
+                    ],
+                ]
+            )
+            
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text="Как вы оцениваете качество сервиса?",
+                reply_markup=keyboard,
+            )
+        
+        # Обработка выбора пользователя
+        @bot.message_handler(filters=CallbackDataFilter("good|ok|bad|cancel"))
+        async def survey_callback_handler(update):
+            callback_data = update.message.text
+            
+            if callback_data == "cancel":
+                await bot.api_client.send_message(
+                    login=update.message.from_user.login,
+                    text="Опрос отменен. Спасибо за внимание!",
+                )
+            else:
+                rating = {
+                    "good": "👍 Отлично!",
+                    "ok": "👌 Хорошо",
+                    "bad": "👎 Спасибо за обратную связь",
+                }.get(callback_data, "Спасибо!")
+                
+                await bot.api_client.send_message(
+                    login=update.message.from_user.login,
+                    text=f"{rating} Ваше мнение важно для нас.",
+                )
+        
+        await bot.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 4. Бот-модератор для групп
+
+Бот, который работает только в групповых чатах и управляет порядком:
+
+```python
+import asyncio
+import re
+from ymbot_async import (
+    Bot, BotConfig, CommandFilter, 
+    ChatTypeFilter, TextFilter
+)
+
+async def main():
+    config = BotConfig(token="your_bot_token")
+    
+    async with Bot(config) as bot:
+        # Команда /rules - показать правила (только в группах)
+        @bot.message_handler(
+            filters=CommandFilter("rules") & ChatTypeFilter("group")
+        )
+        async def rules_handler(update):
+            await bot.api_client.send_message(
+                chat_id=update.message.chat.id,
+                text=(
+                    "📋 Правила группы:\n\n"
+                    "1. Уважайте других участников\n"
+                    "2. Без спама и рекламы\n"
+                    "3. Оставайтесь на теме чата\n"
+                    "4. Соблюдайте этику общения"
+                ),
+            )
+        
+        # Обработка спам-сообщений (только в группах)
+        @bot.message_handler(
+            filters=ChatTypeFilter("group") & 
+            TextFilter(re.compile(r"(https?://\S+){3,}", re.IGNORECASE))
+        )
+        async def spam_handler(update):
+            # Удаляем сообщение с несколькими ссылками
+            await bot.api_client.delete_message(
+                chat_id=update.message.chat.id,
+                message_id=update.message.message_id,
+            )
+            
+            # Отправляем предупреждение
+            await bot.api_client.send_message(
+                chat_id=update.message.chat.id,
+                text=f"⚠️ Сообщение от @{update.message.from_user.login} удалено как спам",
+            )
+        
+        # Команда /warn - предупредить пользователя
+        @bot.message_handler(
+            filters=CommandFilter("warn") & ChatTypeFilter("group")
+        )
+        async def warn_handler(update):
+            # Ответ на сообщение предупреждением
+            if update.message.reply_message_id:
+                await bot.api_client.send_message(
+                    chat_id=update.message.chat.id,
+                    text="⚠️ Это предупреждение. Соблюдайте правила чата!",
+                    reply_message_id=update.message.reply_message_id,
+                )
+        
+        await bot.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 5. Бот-калькулятор
+
+Бот, который вычисляет математические выражения:
+
+```python
+import asyncio
+import re
+from ymbot_async import Bot, BotConfig, TextFilter
+
+async def main():
+    config = BotConfig(token="your_bot_token")
+    
+    async with Bot(config) as bot:
+        # Обработка математических выражений
+        @bot.message_handler(filters=TextFilter(re.compile(r"^\d+[\+\-\*\/\^]\d+$")))
+        async def calc_handler(update):
+            expression = update.message.text
+            
+            try:
+                # Замена ^ на ** для степени
+                expr = expression.replace("^", "**")
+                result = eval(expr)
+                
+                await bot.api_client.send_message(
+                    login=update.message.from_user.login,
+                    text=f"📊 {expression} = {result}",
+                )
+            except Exception:
+                await bot.api_client.send_message(
+                    login=update.message.from_user.login,
+                    text="❌ Ошибка вычисления. Проверьте выражение.",
+                )
+        
+        # Команда /calc - помощь
+        @bot.message_handler(commands=["calc"])
+        async def calc_help_handler(update):
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text=(
+                    "🧮 Калькулятор\n\n"
+                    "Примеры:\n"
+                    "2+2\n"
+                    "10*5\n"
+                    "100/4\n"
+                    "3^2 (степень)"
+                ),
+            )
+        
+        await bot.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 6. Бот с меню выбора
+
+Бот с интерактивным меню для навигации по разделам:
+
+```python
+import asyncio
+from ymbot_async import (
+    Bot, BotConfig, CommandFilter, 
+    InlineButton, InlineKeyboardMarkup, CallbackDataFilter
+)
+
+# Создание главного меню
+def get_main_menu():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineButton(text="📰 Новости", callback_data="news"),
+                InlineButton(text="📚 Каталог", callback_data="catalog"),
+            ],
+            [
+                InlineButton(text="🛒 Корзина", callback_data="cart"),
+                InlineButton(text="👤 Профиль", callback_data="profile"),
+            ],
+            [
+                InlineButton(text="❓ Помощь", callback_data="help"),
+            ],
+        ]
+    )
+
+async def main():
+    config = BotConfig(token="your_bot_token")
+    
+    async with Bot(config) as bot:
+        # Команда /menu - главное меню
+        @bot.message_handler(commands=["menu"])
+        async def menu_handler(update):
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text="🏠 Главное меню",
+                reply_markup=get_main_menu(),
+            )
+        
+        # Обработка кнопок меню
+        @bot.message_handler(filters=CallbackDataFilter("news|catalog|cart|profile|help"))
+        async def menu_callback_handler(update):
+            callback_data = update.message.text
+            
+            responses = {
+                "news": "📰 Последние новости:\n\n• Новая версия бота v2.0\n• Скидки до 50%",
+                "catalog": "📚 Каталог товаров:\n\n1. Товар А\n2. Товар Б\n3. Товар В",
+                "cart": "🛒 Ваша корзина пуста",
+                "profile": "👤 Профиль пользователя:\n\nИмя: Пользователь\nСтатус: Активен",
+                "help": "❓ Справка:\n\nИспользуйте кнопки для навигации по разделам.",
+            }
+            
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text=responses.get(callback_data, "Раздел не найден"),
+                reply_markup=get_main_menu(),
+            )
+        
+        await bot.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 7. Бот обратной связи
+
+Бот, который пересылает сообщения администратору:
+
+```python
+import asyncio
+import os
+from ymbot_async import Bot, BotConfig, CommandFilter
+
+ADMIN_LOGIN = os.getenv("ADMIN_LOGIN", "admin")
+
+async def main():
+    config = BotConfig(token="your_bot_token")
+    
+    async with Bot(config) as bot:
+        # Команда /feedback - отправка обратной связи
+        @bot.message_handler(commands=["feedback"])
+        async def feedback_handler(update):
+            # Получаем текст сообщения после команды
+            text = update.message.text
+            feedback_text = text.replace("/feedback", "").strip()
+            
+            if not feedback_text:
+                await bot.api_client.send_message(
+                    login=update.message.from_user.login,
+                    text="❌ Пожалуйста, введите сообщение после команды /feedback",
+                )
+                return
+            
+            # Отправляем администратору
+            await bot.api_client.send_message(
+                login=ADMIN_LOGIN,
+                text=(
+                    f"📩 Новое сообщение обратной связи\n\n"
+                    f"От: @{update.message.from_user.login}\n"
+                    f"Текст: {feedback_text}"
+                ),
+                important=True,  # Важное сообщение
+            )
+            
+            # Подтверждение пользователю
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text="✅ Ваше сообщение отправлено администратору",
+            )
+        
+        # Команда /contact - контактная информация
+        @bot.message_handler(commands=["contact"])
+        async def contact_handler(update):
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text=(
+                    "📞 Связаться с нами:\n\n"
+                    f"Email: support@example.com\n"
+                    f"Telegram: @{ADMIN_LOGIN}\n"
+                    "Время работы: Пн-Пт, 9:00-18:00"
+                ),
+            )
+        
+        await bot.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 8. Бот для личных уведомлений
+
+Бот, который отправляет важные сообщения без уведомлений:
+
+```python
+import asyncio
+from ymbot_async import Bot, BotConfig, CommandFilter
+
+async def main():
+    config = BotConfig(token="your_bot_token")
+    
+    async with Bot(config) as bot:
+        # Команда /notify - тихое уведомление
+        @bot.message_handler(commands=["notify"])
+        async def notify_handler(update):
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text="🔕 Это тихое уведомление (без звука)",
+                disable_notification=True,
+            )
+        
+        # Команда /urgent - срочное сообщение
+        @bot.message_handler(commands=["urgent"])
+        async def urgent_handler(update):
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text="🔔 СРОЧНО! Это важное уведомление!",
+                important=True,
+            )
+        
+        # Команда /remind - напоминание
+        @bot.message_handler(commands=["remind"])
+        async def remind_handler(update):
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text=(
+                    "⏰ Напоминание:\n\n"
+                    "• Проверьте почту\n"
+                    "• Подтвердите встречу\n"
+                    "• Закройте задачи за сегодня"
+                ),
+                disable_web_page_preview=True,  # Без превью ссылок
+            )
+        
+        await bot.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 9. Бот-помощник с контекстом
+
+Бот, который запоминает контекст и ведет диалог:
+
+```python
+import asyncio
+from ymbot_async import Bot, BotConfig, TextFilter
+
+# Хранилище контекста диалогов
+context_storage: dict[str, dict] = {}
+
+async def main():
+    config = BotConfig(token="your_bot_token")
+    
+    async with Bot(config) as bot:
+        # Команда /reset - сброс контекста
+        @bot.message_handler(commands=["reset"])
+        async def reset_handler(update):
+            user_login = update.message.from_user.login
+            if user_login in context_storage:
+                del context_storage[user_login]
+            
+            await bot.api_client.send_message(
+                login=user_login,
+                text="🔄 Контекст сброшен. Напомните, о чем мы говорили?",
+            )
+        
+        # Обработка вопросов и ответов с контекстом
+        @bot.message_handler(filters=TextFilter("да|нет|конечно|хорошо"))
+        async def context_handler(update):
+            user_login = update.message.from_user.login
+            response = update.message.text.lower()
+            
+            # Получаем предыдущий контекст
+            context = context_storage.get(user_login, {})
+            last_topic = context.get("last_topic")
+            
+            if last_topic:
+                if last_topic == "greeting":
+                    if response in ["да", "конечно"]:
+                        await bot.api_client.send_message(
+                            login=user_login,
+                            text="Отлично! Я здесь, чтобы помочь. Чем могу быть полезен?",
+                        )
+                    elif response == "нет":
+                        await bot.api_client.send_message(
+                            login=user_login,
+                            text="Понял! Обращайтесь, если что-то понадобится.",
+                        )
+                
+                # Обновляем контекст
+                context_storage[user_login] = {
+                    "last_topic": "dialog",
+                    "last_response": response,
+                }
+        
+        # Приветствие и начало диалога
+        @bot.message_handler(filters=TextFilter("привет|здравствуйте|хай"))
+        async def greeting_handler(update):
+            user_login = update.message.from_user.login
+            
+            context_storage[user_login] = {
+                "last_topic": "greeting",
+                "last_response": None,
+            }
+            
+            await bot.api_client.send_message(
+                login=user_login,
+                text=(
+                    "👋 Здравствуйте! Рад вас видеть.\n\n"
+                    "Хотите узнать о моих возможностях?"
+                ),
+            )
+        
+        # Общие вопросы
+        @bot.message_handler()
+        async def general_handler(update):
+            user_login = update.message.from_user.login
+            text = update.message.text.lower()
+            
+            if "как дела" in text:
+                await bot.api_client.send_message(
+                    login=user_login,
+                    text="✅ Все отлично! Готов помочь вам с любыми вопросами.",
+                )
+            elif "что умеешь" in text:
+                await bot.api_client.send_message(
+                    login=user_login,
+                    text=(
+                        "🤖 Я умею:\n\n"
+                        "• Отвечать на вопросы\n"
+                        "• Запоминать контекст диалога\n"
+                        "• Помогать с задачами\n"
+                        "• Отправлять уведомления"
+                    ),
+                )
+            else:
+                await bot.api_client.send_message(
+                    login=user_login,
+                    text="🤔 Интересный вопрос! Расскажите подробнее?",
+                )
+        
+        await bot.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 10. Бот с валидацией данных
+
+Бот, который проверяет форматы данных (email, телефон и т.д.):
+
+```python
+import asyncio
+import re
+from ymbot_async import (
+    Bot, BotConfig, CommandFilter, 
+    TextFilter, InlineButton, InlineKeyboardMarkup
+)
+
+def validate_email(text: str) -> bool:
+    """Валидация email"""
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, text))
+
+def validate_phone(text: str) -> bool:
+    """Валидация телефона (формат: +7XXXXXXXXXX)"""
+    pattern = r'^\+7\d{10}$'
+    return bool(re.match(pattern, text))
+
+def validate_inn(text: str) -> bool:
+    """Валидация ИНН"""
+    pattern = r'^\d{10}$|^\d{12}$'
+    return bool(re.match(pattern, text))
+
+async def main():
+    config = BotConfig(token="your_bot_token")
+    
+    async with Bot(config) as bot:
+        # Команда /validate - меню валидации
+        @bot.message_handler(commands=["validate"])
+        async def validate_menu_handler(update):
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineButton(text="📧 Email", callback_data="validate_email"),
+                        InlineButton(text="📱 Телефон", callback_data="validate_phone"),
+                    ],
+                    [
+                        InlineButton(text="🏢 ИНН", callback_data="validate_inn"),
+                        InlineButton(text="❌ Отмена", callback_data="cancel"),
+                    ],
+                ]
+            )
+            
+            await bot.api_client.send_message(
+                login=update.message.from_user.login,
+                text="Выберите тип данных для валидации:",
+                reply_markup=keyboard,
+            )
+        
+        # Обработка выбора типа валидации
+        @bot.message_handler(
+            filters=TextFilter("validate_email|validate_phone|validate_inn|cancel")
+        )
+        async def validate_callback_handler(update):
+            user_login = update.message.from_user.login
+            callback_data = update.message.text
+            
+            if callback_data == "cancel":
+                await bot.api_client.send_message(
+                    login=user_login,
+                    text="Валидация отменена",
+                )
+                return
+            
+            # Устанавливаем режим валидации
+            context = {
+                "mode": callback_data.replace("validate_", ""),
+            }
+            
+            instructions = {
+                "email": "📧 Введите email для проверки (пример: user@example.com)",
+                "phone": "📱 Введите номер телефона (формат: +7XXXXXXXXXX)",
+                "inn": "🏢 Введите ИНН (10 или 12 цифр)",
+            }
+            
+            await bot.api_client.send_message(
+                login=user_login,
+                text=instructions.get(context["mode"], "Неизвестный тип"),
+            )
+        
+        # Валидация email
+        @bot.message_handler(filters=TextFilter(re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')))
+        async def email_validation_handler(update):
+            user_login = update.message.from_user.login
+            email = update.message.text
+            
+            if validate_email(email):
+                await bot.api_client.send_message(
+                    login=user_login,
+                    text=f"✅ Email {email} - валидный",
+                )
+            else:
+                await bot.api_client.send_message(
+                    login=user_login,
+                    text=f"❌ Email {email} - невалидный",
+                )
+        
+        # Валидация телефона
+        @bot.message_handler(filters=TextFilter(re.compile(r'^\+7\d{10}$')))
+        async def phone_validation_handler(update):
+            user_login = update.message.from_user.login
+            phone = update.message.text
+            
+            if validate_phone(phone):
+                await bot.api_client.send_message(
+                    login=user_login,
+                    text=f"✅ Телефон {phone} - валидный",
+                )
+            else:
+                await bot.api_client.send_message(
+                    login=user_login,
+                    text=f"❌ Телефон {phone} - невалидный. Формат: +7XXXXXXXXXX",
+                )
+        
+        # Валидация ИНН
+        @bot.message_handler(filters=TextFilter(re.compile(r'^\d{10}$|^\d{12}$')))
+        async def inn_validation_handler(update):
+            user_login = update.message.from_user.login
+            inn = update.message.text
+            
+            if validate_inn(inn):
+                await bot.api_client.send_message(
+                    login=user_login,
+                    text=f"✅ ИНН {inn} - валидный",
+                )
+            else:
+                await bot.api_client.send_message(
+                    login=user_login,
+                    text=f"❌ ИНН {inn} - невалидный (10 или 12 цифр)",
+                )
+        
+        await bot.run_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
 ## Структура проекта
 
 ```
