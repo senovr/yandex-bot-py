@@ -345,27 +345,131 @@ config = BotConfig(
 ### Установка зависимостей для разработки
 
 ```bash
-pip install -e ".[dev]"
+# Установка всех зависимостей с uv
+uv sync --dev
 ```
 
-### Запуск линтеров
+### Запуск тестов
+
+Проект использует многоуровневую стратегию тестирования:
+
+- **Unit тесты** - быстрые, изолированные тесты для отдельных компонентов
+- **Smoke тесты** - быстрые проверки критического функционала
+- **Integration тесты** - тесты взаимодействия компонентов
+- **E2E тесты** - тесты с реальным API (требуют REAL_BOT_TOKEN)
+
+#### Запуск всех тестов (кроме E2E)
+
+```bash
+# Все тесты кроме E2E
+uv run pytest tests/ -v -m "not e2e"
+```
+
+#### Запуск конкретных типов тестов
+
+```bash
+# Unit тесты
+uv run pytest tests/unit/ -v
+
+# Smoke тесты
+uv run pytest tests/smoke/ -v
+
+# Integration тесты
+uv run pytest tests/integration/ -v
+
+# E2E тесты (требует REAL_BOT_TOKEN)
+# Смотрите раздел ниже "Запуск E2E тестов"
+
+# Без покрытия кода (быстрее)
+uv run pytest tests/ -v --no-cov -m "not e2e"
+```
+
+#### Запуск E2E тестов
+
+E2E тесты требуют реальный токен бота для взаимодействия с Yandex Messenger API.
+
+```bash
+# Windows (CMD)
+set REAL_BOT_TOKEN=ваш_токен_здесь
+uv run pytest tests/e2e/ -v -m e2e
+
+# Windows (PowerShell)
+$env:REAL_BOT_TOKEN="ваш_токен_здесь"
+uv run pytest tests/e2e/ -v -m e2e
+
+# Linux/Mac (Bash)
+export REAL_BOT_TOKEN="ваш_токен_здесь"
+uv run pytest tests/e2e/ -v -m e2e
+```
+
+Если `REAL_BOT_TOKEN` не установлен, E2E тесты будут автоматически пропущены (skipped).
+
+#### Отчеты по покрытию кода (Coverage Reports)
+
+После запуска тестов автоматически генерируются два типа отчетов:
+
+**1. Консольный отчет**
+- Отображается в терминале после завершения тестов
+- Показывает процент покрытия для каждого модуля
+- Выделяет непокрытые строки (цветом)
+- Пример вывода:
+  ```
+  ---------- coverage: platform win32, python 3.11 -----------
+  Name                                      Stmts   Miss  Cover   Missing
+  -------------------------------------------------------------------------
+  src/ymbot_async/__init__.py                  2      0   100%
+  src/ymbot_async/api/client.py               45      5    89%   23-27, 45
+  src/ymbot_async/bot.py                      30      2    93%   12, 15
+  -------------------------------------------------------------------------
+  TOTAL                                       77      7    91%
+  ```
+
+**2. HTML отчет**
+- Генерируется в директории `htmlcov/`
+- Интерактивный отчет с подсветкой кода
+- Покрывает все модули проекта
+- Показывает какие строки не покрыты тестами
+
+**Как открыть HTML отчет:**
+
+```bash
+# Windows
+start htmlcov/index.html
+
+# Mac
+open htmlcov/index.html
+
+# Linux
+xdg-open htmlcov/index.html
+```
+
+Или откройте файл `htmlcov/index.html` в браузере вручную.
+
+**Отключение генерации отчетов:**
+```bash
+# Без покрытия (быстрее)
+uv run pytest tests/ -v --no-cov -m "not e2e"
+```
+
+#### Запуск линтеров
 
 ```bash
 # Ruff (линтер и форматтер)
-ruff check src/ tests/
-ruff format --check src/ tests/
+uv run ruff check src/ tests/
+uv run ruff format --check src/ tests/
 
 # Mypy (проверка типов)
-mypy src/
-
-# Pytest (тесты)
-pytest tests/ -v --cov=src/ymbot_async
+uv run mypy src/
 ```
 
 ### Форматирование кода
 
 ```bash
-ruff format src/ tests/
+# Автоматическое форматирование
+uv run ruff format src/ tests/
+
+# Проверка форматирования без изменений
+uv run ruff format --check src/ tests/
 ```
 
 ## Лицензия
