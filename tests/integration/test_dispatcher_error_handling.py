@@ -5,7 +5,7 @@ import pytest
 from unittest.mock import AsyncMock
 
 from ymbot_async.api.client import ApiClient
-from ymbot_async.api.schemas import Update, Message, Chat, User
+from ymbot_async.api.schemas import Update, Chat, Sender
 from ymbot_async.config import BotConfig
 from ymbot_async.dispatcher.filters import TextFilter
 from ymbot_async.dispatcher.handlers import MessageHandler
@@ -49,12 +49,11 @@ class TestDispatcherErrorHandling:
         # Create failing update
         failing_update = Update(
             update_id=1,
-            message=Message(
-                id="123",
-                text="fail",
-                timestamp="2026-01-27T19:00:00Z",
-                chat=Chat(id="456", type="private", name="Test Chat"),
-            ),
+            message_id=123,
+            text="fail",
+            timestamp=1738000800,
+            chat=Chat(type="private", id="456"),
+            **{"from": Sender(id="user1")},
         )
 
         # Feed failing update
@@ -64,12 +63,11 @@ class TestDispatcherErrorHandling:
         # Create good update
         good_update = Update(
             update_id=2,
-            message=Message(
-                id="124",
-                text="good",
-                timestamp="2026-01-27T19:01:00Z",
-                chat=Chat(id="456", type="private", name="Test Chat"),
-            ),
+            message_id=124,
+            text="good",
+            timestamp=1738000860,
+            chat=Chat(type="private", id="456"),
+            **{"from": Sender(id="user1")},
         )
 
         # Feed good update - should be processed
@@ -113,12 +111,11 @@ class TestDispatcherErrorHandling:
         # Create update that won't match
         update = Update(
             update_id=1,
-            message=Message(
-                id="123",
-                text="nomatch",
-                timestamp="2026-01-27T19:00:00Z",
-                chat=Chat(id="456", type="private", name="Test Chat"),
-            ),
+            message_id=123,
+            text="nomatch",
+            timestamp=1738000800,
+            chat=Chat(type="private", id="456"),
+            **{"from": Sender(id="user1")},
         )
 
         await dispatcher.feed_update(update)
@@ -167,12 +164,11 @@ class TestDispatcherConcurrency:
         updates = [
             Update(
                 update_id=i,
-                message=Message(
-                    id=str(i),
-                    text="test",
-                    timestamp="2026-01-27T19:00:00Z",
-                    chat=Chat(id="456", type="private", name="Test Chat"),
-                ),
+                message_id=i,
+                text="test",
+                timestamp=1738000800,
+                chat=Chat(type="private", id="456"),
+                **{"from": Sender(id=f"user{i}")},
             )
             for i in range(1, 5)
         ]
@@ -227,12 +223,11 @@ class TestDispatcherConcurrency:
         for i in range(1, 6):
             update = Update(
                 update_id=i,
-                message=Message(
-                    id=str(i),
-                    text="test",
-                    timestamp="2026-01-27T19:00:00Z",
-                    chat=Chat(id="456", type="private", name="Test Chat"),
-                ),
+                message_id=i,
+                text="test",
+                timestamp=1738000800,
+                chat=Chat(type="private", id="456"),
+                **{"from": Sender(id=f"user{i}")},
             )
             await dispatcher.feed_update(update)
 
@@ -278,12 +273,11 @@ class TestDispatcherWorkerLifecycle:
         for i in range(1, 4):
             update = Update(
                 update_id=i,
-                message=Message(
-                    id=str(i),
-                    text="test",
-                    timestamp="2026-01-27T19:00:00Z",
-                    chat=Chat(id="456", type="private", name="Test Chat"),
-                ),
+                message_id=i,
+                text="test",
+                timestamp=1738000800,
+                chat=Chat(type="private", id="456"),
+                **{"from": Sender(id=f"user{i}")},
             )
             await dispatcher.feed_update(update)
 
@@ -323,12 +317,11 @@ class TestDispatcherWorkerLifecycle:
         for i in range(1, 4):
             update = Update(
                 update_id=i,
-                message=Message(
-                    id=str(i),
-                    text="test",
-                    timestamp="2026-01-27T19:00:00Z",
-                    chat=Chat(id="456", type="private", name="Test Chat"),
-                ),
+                message_id=i,
+                text="test",
+                timestamp=1738000800,
+                chat=Chat(type="private", id="456"),
+                **{"from": Sender(id=f"user{i}")},
             )
             await dispatcher.feed_update(update)
 
@@ -363,9 +356,9 @@ class TestDispatcherRealHandlerExecution:
             # Capture the full update object
             received_updates.append({
                 'update_id': update.update_id,
-                'message_id': update.message.id,
-                'text': update.message.text,
-                'chat_id': update.message.chat.id,
+                'message_id': update.message_id,
+                'text': update.text,
+                'chat_id': update.chat.id,
             })
 
         dispatcher.register_handler(MessageHandler(handler, TextFilter(text="test")))
@@ -376,13 +369,11 @@ class TestDispatcherRealHandlerExecution:
         # Create update with specific data
         update = Update(
             update_id=42,
-            message=Message(
-                id="msg123",
-                text="test",
-                timestamp="2026-01-27T19:00:00Z",
-                from_user=User(id="user1", name="Test User"),
-                chat=Chat(id="chat456", type="private", name="Test Chat"),
-            ),
+            message_id=123,
+            text="test",
+            timestamp=1738000800,
+            chat=Chat(type="private", id="chat456"),
+            **{"from": Sender(id="user42")},
         )
 
         await dispatcher.feed_update(update)
@@ -395,7 +386,7 @@ class TestDispatcherRealHandlerExecution:
         # Verify handler received correct data
         assert len(received_updates) == 1
         assert received_updates[0]['update_id'] == 42
-        assert received_updates[0]['message_id'] == "msg123"
+        assert received_updates[0]['message_id'] == 123
         assert received_updates[0]['text'] == "test"
         assert received_updates[0]['chat_id'] == "chat456"
 
@@ -431,12 +422,11 @@ class TestDispatcherRealHandlerExecution:
 
         update = Update(
             update_id=1,
-            message=Message(
-                id="123",
-                text="test",
-                timestamp="2026-01-27T19:00:00Z",
-                chat=Chat(id="456", type="private", name="Test Chat"),
-            ),
+            message_id=123,
+            text="test",
+            timestamp=1738000800,
+            chat=Chat(type="private", id="456"),
+            **{"from": Sender(id="user1")},
         )
 
         await dispatcher.feed_update(update)
@@ -483,12 +473,11 @@ class TestDispatcherGracefulShutdown:
         # Feed an update
         update = Update(
             update_id=1,
-            message=Message(
-                id="123",
-                text="test",
-                timestamp="2026-01-27T19:00:00Z",
-                chat=Chat(id="456", type="private", name="Test Chat"),
-            ),
+            message_id=123,
+            text="test",
+            timestamp=1738000800,
+            chat=Chat(type="private", id="456"),
+            **{"from": Sender(id="user1")},
         )
 
         await dispatcher.feed_update(update)

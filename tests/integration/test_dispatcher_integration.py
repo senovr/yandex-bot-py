@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 
 from ymbot_async.api.client import ApiClient
-from ymbot_async.api.schemas import Update, Message, Chat, User
+from ymbot_async.api.schemas import Update, Chat, Sender
 from ymbot_async.bot import Bot
 from ymbot_async.config import BotConfig
 from ymbot_async.dispatcher.filters import (
@@ -42,12 +42,11 @@ class TestDispatcherIntegration:
             # Create test update
             update = Update(
                 update_id=1,
-                message=Message(
-                    id="123",
-                    text="test",
-                    timestamp="2026-01-27T19:00:00Z",
-                    chat=Chat(id="456", type="private", name="Test Chat")
-                )
+                message_id=123,
+                text="test",
+                timestamp=1738000800,
+                chat=Chat(type="private", id="456"),
+                **{"from": Sender(id="user1")},
             )
 
             # Feed update to dispatcher
@@ -65,12 +64,11 @@ class TestDispatcherIntegration:
             # Create test update
             update = Update(
                 update_id=1,
-                message=Message(
-                    id="123",
-                    text="test",
-                    timestamp="2026-01-27T19:00:00Z",
-                    chat=Chat(id="456", type="private", name="Test Chat")
-                )
+                message_id=123,
+                text="test",
+                timestamp=1738000800,
+                chat=Chat(type="private", id="456"),
+                **{"from": Sender(id="user1")},
             )
 
             # Fill the queue (queue_maxsize from config is 1000)
@@ -94,12 +92,11 @@ class TestHandlerFilterIntegration:
 
             update = Update(
                 update_id=1,
-                message=Message(
-                    id="123",
-                    text="/start",
-                    timestamp="2026-01-27T19:00:00Z",
-                    chat=Chat(id="456", type="private", name="Test Chat")
-                )
+                message_id=123,
+                text="/start",
+                timestamp=1738000800,
+                chat=Chat(type="private", id="456"),
+                **{"from": Sender(id="user1")},
             )
 
             assert handler.check(update) is True
@@ -115,12 +112,11 @@ class TestHandlerFilterIntegration:
 
             update = Update(
                 update_id=1,
-                message=Message(
-                    id="123",
-                    text="/help",
-                    timestamp="2026-01-27T19:00:00Z",
-                    chat=Chat(id="456", type="private", name="Test Chat")
-                )
+                message_id=123,
+                text="/help",
+                timestamp=1738000800,
+                chat=Chat(type="private", id="456"),
+                **{"from": Sender(id="user1")},
             )
 
             assert handler.check(update) is False
@@ -136,12 +132,11 @@ class TestHandlerFilterIntegration:
 
             update = Update(
                 update_id=1,
-                message=Message(
-                    id="123",
-                    text="hello",
-                    timestamp="2026-01-27T19:00:00Z",
-                    chat=Chat(id="456", type="private", name="Test Chat")
-                )
+                message_id=123,
+                text="hello",
+                timestamp=1738000800,
+                chat=Chat(type="private", id="456"),
+                **{"from": Sender(id="user1")},
             )
 
             assert handler.check(update) is True
@@ -157,12 +152,11 @@ class TestHandlerFilterIntegration:
 
             update = Update(
                 update_id=1,
-                message=Message(
-                    id="123",
-                    text="hello",
-                    timestamp="2026-01-27T19:00:00Z",
-                    chat=Chat(id="456", type="private", name="Test Chat")
-                )
+                message_id=123,
+                text="hello",
+                timestamp=1738000800,
+                chat=Chat(type="private", id="456"),
+                **{"from": Sender(id="user1")},
             )
 
             assert handler.check(update) is True
@@ -183,12 +177,11 @@ class TestHandlerFilterIntegration:
 
             update = Update(
                 update_id=1,
-                message=Message(
-                    id="123",
-                    text="/help",
-                    timestamp="2026-01-27T19:00:00Z",
-                    chat=Chat(id="456", type="private", name="Test Chat")
-                )
+                message_id=123,
+                text="/help",
+                timestamp=1738000800,
+                chat=Chat(type="private", id="456"),
+                **{"from": Sender(id="user1")},
             )
 
             assert handler.check(update) is True
@@ -209,12 +202,11 @@ class TestHandlerFilterIntegration:
 
             update = Update(
                 update_id=1,
-                message=Message(
-                    id="123",
-                    text="/help",
-                    timestamp="2026-01-27T19:00:00Z",
-                    chat=Chat(id="456", type="private", name="Test Chat")
-                )
+                message_id=123,
+                text="/help",
+                timestamp=1738000800,
+                chat=Chat(type="private", id="456"),
+                **{"from": Sender(id="user1")},
             )
 
             assert handler.check(update) is False
@@ -237,12 +229,11 @@ class TestDispatcherLifecycle:
             # Create test update
             update = Update(
                 update_id=1,
-                message=Message(
-                    id="123",
-                    text="test",
-                    timestamp="2026-01-27T19:00:00Z",
-                    chat=Chat(id="456", type="private", name="Test Chat")
-                )
+                message_id=123,
+                text="test",
+                timestamp=1738000800,
+                chat=Chat(type="private", id="456"),
+                **{"from": Sender(id="user1")},
             )
 
             # Try to feed update - should return False

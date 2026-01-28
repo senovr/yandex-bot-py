@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from ymbot_async.bot import Bot
-from ymbot_async.api.schemas import Update, Message, Chat, User
+from ymbot_async.api.schemas import Update
 
 
 class TestBotFullLifecycle:
@@ -20,7 +20,7 @@ class TestBotFullLifecycle:
         
         async def handler(update):
             processed_updates.append(update)
-            return f"Processed: {update.message.text}"
+            return f"Processed: {update.text}"
         
         # Create and initialize bot
         async with Bot(config=bot_config) as bot:
@@ -53,7 +53,7 @@ class TestBotFullLifecycle:
         processed_messages = []
         
         async def message_handler(update):
-            processed_messages.append(update.message.text)
+            processed_messages.append(update.text)
             return "OK"
         
         async with Bot(config=bot_config) as bot:

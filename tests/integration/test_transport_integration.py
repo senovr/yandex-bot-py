@@ -11,11 +11,11 @@ from ymbot_async.errors import TransportError, ApiError
 
 
 def _create_response_mock(status_code: int, data: dict):
-    """Helper to create a response mock with async json method"""
+    """Helper to create a response mock with json method"""
     response_mock = MagicMock()
     response_mock.status_code = status_code
     
-    async def json_mock():
+    def json_mock():
         return data
     
     response_mock.json = json_mock
@@ -213,8 +213,11 @@ class TestTransportMultipleRetries:
         
         mock_client = MagicMock()
         
-        # Always timeout
-        mock_client.request = AsyncMock(side_effect=httpx.ReadTimeout("Always timeout"))
+        # Always timeout - use async function instead of AsyncMock with side_effect
+        async def always_timeout(*args, **kwargs):
+            raise httpx.ReadTimeout("Always timeout")
+        
+        mock_client.request = always_timeout
         mock_client.aclose = AsyncMock()
         
         with patch('ymbot_async.transport.httpx_transport.httpx.AsyncClient', return_value=mock_client):
@@ -233,11 +236,14 @@ class TestTransportNonRetryable:
         config = BotConfig(token="test_token")
         
         mock_client = MagicMock()
+        call_count = [0]
         
-        # 400 error - should not retry
-        mock_client.request = AsyncMock(
-            return_value=_create_response_mock(400, {"ok": False, "error": "Bad Request"})
-        )
+        # 400 error - should not retry - use async function instead of AsyncMock
+        async def return_400(*args, **kwargs):
+            call_count[0] += 1
+            return _create_response_mock(400, {"ok": False, "error": "Bad Request"})
+        
+        mock_client.request = return_400
         mock_client.aclose = AsyncMock()
         
         with patch('ymbot_async.transport.httpx_transport.httpx.AsyncClient', return_value=mock_client):
@@ -246,7 +252,7 @@ class TestTransportNonRetryable:
                     await transport.request("GET", "/test")
             
             # Should only be called once (no retries)
-            assert mock_client.request.call_count == 1
+            assert call_count[0] == 1
 
 
 class TestTransportCustomRetryConfig:

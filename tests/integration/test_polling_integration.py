@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from ymbot_async.runtime.polling import Poller
-from ymbot_async.api.schemas import Update, Message, Chat, User
+from ymbot_async.api.schemas import Update, Chat, Sender
 from ymbot_async.config import BotConfig
 
 
@@ -26,13 +26,11 @@ class TestPollerBackoff:
         
         update = Update(
             update_id=1,
-            message=Message(
-                id="1",
-                text="Hello",
-                from_user=User(id="1", name="Test"),
-                timestamp="2024-01-01T00:00:00Z",
-                chat=Chat(id="1", type="private"),
-            ),
+            message_id=1,
+            text="Hello",
+            timestamp=1704067200,
+            chat=Chat(type="private", id="1"),
+            **{"from": Sender(id="user1")},
         )
         
         # Use side_effect to return empty response first, then update
@@ -290,13 +288,11 @@ class TestPollerErrorRecovery:
             
             update = Update(
                 update_id=call_count[0],
-                message=Message(
-                    id=str(call_count[0]),
-                    text="Hello",
-                    from_user=User(id="1", name="Test"),
-                    timestamp="2024-01-01T00:00:00Z",
-                    chat=Chat(id="1", type="private"),
-                ),
+                message_id=call_count[0],
+                text="Hello",
+                timestamp=1704067200,
+                chat=Chat(type="private", id="1"),
+                **{"from": Sender(id=f"user{call_count[0]}")},
             )
             return MagicMock(updates=[update])
         
