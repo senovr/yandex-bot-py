@@ -81,10 +81,7 @@ class TextFilter(Filter):
         self.text = text
 
     def check(self, update: Update) -> bool:
-        if not update.message:
-            return False
-        
-        message_text = update.message.text
+        message_text = update.text
         
         if self.text is None:
             return bool(message_text)
@@ -125,10 +122,7 @@ class CommandFilter(Filter):
         ]
 
     def check(self, update: Update) -> bool:
-        if not update.message:
-            return False
-        
-        message_text = update.message.text
+        message_text = update.text
         
         if not message_text:
             return False
@@ -157,7 +151,7 @@ class CallbackDataFilter(Filter):
 
     def check(self, update: Update) -> bool:
         # Check if update has callback_query
-        callback_data = update.message.text if update.message else None
+        callback_data = update.text
         
         if callback_data is None:
             return False
@@ -181,7 +175,4 @@ class ChatTypeFilter(Filter):
         self.chat_types = chat_type if isinstance(chat_type, list) else [chat_type]
 
     def check(self, update: Update) -> bool:
-        if not update.message:
-            return False
-        
-        return update.message.chat.type in self.chat_types
+        return update.chat.type in self.chat_types

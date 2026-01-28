@@ -62,7 +62,8 @@ class MessageHandler(Handler):
 
     def check(self, update: Update) -> bool:
         """Check if update matches handler filters"""
-        if not update.message:
+        # MessageHandler matches if update has text content
+        if update.text is None:
             return False
 
         if self.filters is None:
@@ -105,8 +106,8 @@ class CallbackQueryHandler(Handler):
 
     def check(self, update: Update) -> bool:
         """Check if update matches handler filters"""
-        # Check if update has callback data
-        if not update.message or not update.message.text:
+        # Check if update has callback data (text field)
+        if not update.text:
             return False
 
         if self.filters is None:

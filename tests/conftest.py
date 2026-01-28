@@ -8,7 +8,6 @@ from httpx import Response, Request
 
 from ymbot_async.config import BotConfig, RetryConfig
 from ymbot_async.api.schemas import (
-    User,
     Chat,
     Sender,
     Update,
@@ -92,36 +91,26 @@ def retry_config_custom():
 
 
 @pytest.fixture
-def sample_user():
-    """Create a sample User object."""
-    return User(
-        id="12345",
-        name="Test User",
-    )
-
-
-@pytest.fixture
 def sample_chat():
     """Create a sample Chat object."""
     return Chat(
         id="chat_123",
         type="group",
-        name="Test Chat",
     )
 
 
 @pytest.fixture
-def sample_update(sample_user, sample_chat):
+def sample_update(sample_chat):
     """Create a sample Update object."""
     return Update(
         update_id=1,
         message_id=1,
         timestamp=1704067200,  # 2024-01-01T00:00:00Z
         chat=sample_chat,
-        from_user=Sender(
-            login=sample_user.id,
-            display_name=sample_user.name,
-        ),
+        **{"from": Sender(
+            login="12345",
+            display_name="Test User",
+        )},
         text="Hello, World!",
     )
 
@@ -142,6 +131,12 @@ def sample_inline_keyboard(sample_inline_button):
     return InlineKeyboardMarkup(
         inline_keyboard=[[sample_inline_button]]
     )
+
+
+@pytest.fixture
+def sample_inline_keyboard_buttons(sample_inline_button):
+    """Create a sample inline keyboard as list of lists of buttons."""
+    return [[sample_inline_button]]
 
 
 @pytest.fixture
@@ -224,6 +219,7 @@ def mock_transport():
     transport = MagicMock()
     transport.__aenter__ = AsyncMock(return_value=transport)
     transport.__aexit__ = AsyncMock(return_value=None)
+    transport.request = AsyncMock()
     transport.get = AsyncMock()
     transport.post = AsyncMock()
     transport.close = AsyncMock()
@@ -236,8 +232,6 @@ def mock_api_client(mock_transport):
     client = MagicMock()
     client.get_updates = AsyncMock()
     client.send_message = AsyncMock()
-    client.answer_callback_query = AsyncMock()
-    client.edit_message_text = AsyncMock()
     client.delete_message = AsyncMock()
     return client
 
@@ -279,16 +273,16 @@ def transport(bot_config):
 
 
 @pytest.fixture
-def sample_command_update(sample_user, sample_chat):
+def sample_command_update(sample_chat):
     """Create a sample command update."""
     return Update(
         update_id=1,
         message_id=1,
         timestamp=1704067200,
         chat=sample_chat,
-        from_user=Sender(
-            login=sample_user.id,
-            display_name=sample_user.name,
-        ),
+        **{"from": Sender(
+            login="12345",
+            display_name="Test User",
+        )},
         text="/start",
     )
