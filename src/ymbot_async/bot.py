@@ -65,6 +65,9 @@ class Bot:
         self.dispatcher: Dispatcher | None = None
         self.offset_manager: OffsetManager | None = None
         self.poller: Poller | None = None
+        
+        # Store handlers for deferred registration
+        self._pending_handlers: list[Handler] = []
 
         logger.info(
             "Bot initialized",
@@ -86,6 +89,11 @@ class Bot:
 
         # Create dispatcher
         self.dispatcher = Dispatcher(self.api_client, self.config)
+        
+        # Register any pending handlers
+        for handler in self._pending_handlers:
+            self.dispatcher.register_handler(handler)
+        self._pending_handlers.clear()
 
         # Create poller
         self.poller = Poller(self.api_client, self.config)
@@ -132,17 +140,36 @@ class Bot:
                     chat_id=update.message.chat.id,
                     text="Hello!",
                 )
-            ```
+            ````
         """
+        print(f"DEBUG message_handler: self.dispatcher={self.dispatcher}")
 
         def decorator(func):
-            if not self.dispatcher:
-                raise RuntimeError(
-                    "Bot not initialized. Use 'async with' context manager."
-                )
-
+            print(f"DEBUG decorator: func={func.__name__}")
             handler = MessageHandler(callback=func, filters=filters)
-            self.dispatcher.register_handler(handler)
+            
+            if self.dispatcher:
+                # Dispatcher exists, register immediately
+                logger.debug(
+                    "Registering handler immediately",
+                    function_name=func.__name__,
+                    dispatcher_exists=True,
+                )
+                self.dispatcher.register_handler(handler)
+                logger.debug(
+                    "Handler registered successfully",
+                    function_name=func.__name__,
+                    total_handlers=len(self.dispatcher.handlers),
+                )
+            else:
+                # Store for deferred registration when dispatcher is created
+                logger.debug(
+                    "Storing handler for deferred registration",
+                    function_name=func.__name__,
+                    dispatcher_exists=False,
+                )
+                self._pending_handlers.append(handler)
+            
             logger.debug(
                 "Message handler registered",
                 function_name=func.__name__,

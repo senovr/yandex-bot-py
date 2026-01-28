@@ -10,7 +10,7 @@ from ymbot_async.config import BotConfig, RetryConfig
 from ymbot_async.api.schemas import (
     User,
     Chat,
-    Message,
+    Sender,
     Update,
     InlineButton,
     InlineKeyboardMarkup,
@@ -111,24 +111,18 @@ def sample_chat():
 
 
 @pytest.fixture
-def sample_message(sample_user, sample_chat):
-    """Create a sample Message object."""
-    return Message(
-        id="1",
-        text="Hello, World!",
-        chat=sample_chat,
-        from_user=sample_user,  # type: ignore
-        timestamp="2024-01-01T00:00:00Z",
-    )
-
-
-@pytest.fixture
-def sample_update(sample_message):
+def sample_update(sample_user, sample_chat):
     """Create a sample Update object."""
     return Update(
         update_id=1,
-        message=sample_message,
-        callback_query=None,
+        message_id=1,
+        timestamp=1704067200,  # 2024-01-01T00:00:00Z
+        chat=sample_chat,
+        from_user=Sender(
+            login=sample_user.id,
+            display_name=sample_user.name,
+        ),
+        text="Hello, World!",
     )
 
 
@@ -186,20 +180,17 @@ def get_updates_response():
         "updates": [
             {
                 "update_id": 1,
-                "message": {
-                    "id": "1",
-                    "text": "/start",
-                    "chat": {
-                        "id": "chat_123",
-                        "type": "private",
-                        "name": "Test Chat",
-                    },
-                    "from": {
-                        "id": "12345",
-                        "name": "Test User",
-                    },
-                    "timestamp": "2024-01-01T00:00:00Z",
+                "message_id": 1,
+                "timestamp": 1704067200,
+                "chat": {
+                    "type": "private",
                 },
+                "from": {
+                    "id": "12345",
+                    "login": "test_user",
+                    "display_name": "Test User",
+                },
+                "text": "/start",
             }
         ],
     }
@@ -288,12 +279,16 @@ def transport(bot_config):
 
 
 @pytest.fixture
-def sample_command_message(sample_user, sample_chat):
-    """Create a sample command message."""
-    return Message(
-        id="1",
-        text="/start",
+def sample_command_update(sample_user, sample_chat):
+    """Create a sample command update."""
+    return Update(
+        update_id=1,
+        message_id=1,
+        timestamp=1704067200,
         chat=sample_chat,
-        from_user=sample_user,  # type: ignore
-        timestamp="2024-01-01T00:00:00Z",
+        from_user=Sender(
+            login=sample_user.id,
+            display_name=sample_user.name,
+        ),
+        text="/start",
     )

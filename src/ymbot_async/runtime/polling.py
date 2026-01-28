@@ -187,7 +187,7 @@ class Poller:
         try:
             await asyncio.wait_for(
                 self._polling_task,
-                timeout=self.config.timeout_read + 5.0,
+                timeout=self.config.polling_timeout + 5.0,
             )
         except asyncio.TimeoutError:
             logger.warning("Poller stop timed out, cancelling task")
@@ -197,5 +197,7 @@ class Poller:
             except asyncio.CancelledError:
                 pass
 
+        # Clear all references to help garbage collection
         self._polling_task = None
+        self._empty_response_count = 0
         logger.info("Poller stopped")

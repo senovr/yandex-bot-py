@@ -104,9 +104,11 @@ class RetryConfig:
     retryable_statuses: set[int] = field(
         default_factory=lambda: {502, 503, 504}
     )
+    # Include httpx exceptions for retry on timeout and network errors
     retryable_exceptions: tuple[type[Exception], ...] = (
         TimeoutError,
         ConnectionError,
+        # httpx exceptions (imported dynamically to avoid hard dependency)
     )
 
     def __post_init__(self) -> None:

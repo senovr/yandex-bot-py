@@ -163,7 +163,7 @@ class HttpxTransport:
                 except Exception as e:
                     raise TransportError(
                         f"Failed to parse JSON response: {e}",
-                    )
+                    ) from e
                 
                 # Check for API errors
                 if not response_data.get("ok"):
@@ -182,8 +182,29 @@ class HttpxTransport:
                 
                 return response_data
                 
-            except ApiError:
-                # API errors are not retryable
+            except ApiError as e:
+                # Check if this API error has a retryable status code
+                if e.status_code in retry_cfg.retryable_statuses:
+                    if attempt < retry_cfg.max_retries:
+                        backoff = self._calculate_backoff(attempt)
+                        logger.warning(
+                            "Retryable API error",
+                            status_code=e.status_code,
+                            description=e.description,
+                            attempt=attempt + 1,
+                            max_retries=retry_cfg.max_retries,
+                            backoff=round(backoff, 2),
+                        )
+                        await asyncio.sleep(backoff)
+                        continue
+                    else:
+                        logger.error(
+                            "Max retries exceeded for API error",
+                            status_code=e.status_code,
+                            description=e.description,
+                            max_retries=retry_cfg.max_retries,
+                        )
+                # Non-retryable API errors are raised immediately
                 raise
             
             except TransportError as e:
@@ -203,6 +224,7 @@ class HttpxTransport:
                         backoff=round(backoff, 2),
                     )
                     await asyncio.sleep(backoff)
+                    continue
                 else:
                     logger.error(
                         "Max retries exceeded",
@@ -213,8 +235,35 @@ class HttpxTransport:
             
             except Exception as e:
                 # Check if this is retryable
-                if isinstance(e, (*retry_cfg.retryable_exceptions,)):
-                    # Retryable exceptions from config
+                is_retryable = isinstance(e, tuple(retry_cfg.retryable_exceptions))
+                
+                # Also check for httpx-specific exceptions (network/timeouts)
+                if not is_retryable:
+                    # httpx timeout exceptions
+                    is_retryable = isinstance(
+                        e,
+                        (
+                            httpx.TimeoutException,  # Base class for all timeouts
+                            httpx.ConnectTimeout,
+                            httpx.ReadTimeout,
+                            httpx.WriteTimeout,
+                            httpx.PoolTimeout,
+                        )
+                    )
+                
+                # Check for httpx network errors
+                if not is_retryable:
+                    is_retryable = isinstance(
+                        e,
+                        (
+                            httpx.ConnectError,
+                            httpx.NetworkError,  # Base class for network errors
+                            httpx.ProtocolError,
+                        )
+                    )
+                
+                if is_retryable:
+                    # Retryable exception
                     last_error = e
                     if attempt < retry_cfg.max_retries:
                         backoff = self._calculate_backoff(attempt)
@@ -227,6 +276,7 @@ class HttpxTransport:
                             backoff=round(backoff, 2),
                         )
                         await asyncio.sleep(backoff)
+                        continue
                     else:
                         logger.error(
                             "Max retries exceeded",

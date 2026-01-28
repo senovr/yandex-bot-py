@@ -71,7 +71,9 @@ class Dispatcher:
         Args:
             handler: Handler to register
         """
+        print(f"DEBUG dispatcher.register_handler: appending handler, total before={len(self.handlers)}")
         self.handlers.append(handler)
+        print(f"DEBUG dispatcher.register_handler: total after={len(self.handlers)}")
         logger.debug(
             "Handler registered",
             handler_type=type(handler).__name__,
