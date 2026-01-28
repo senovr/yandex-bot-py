@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from ymbot_async.runtime.polling import Poller
-from ymbot_async.api.schemas import Update
+from ymbot_async.api.schemas import Update, GetUpdatesResponse, Chat, Sender
 
 
 class TestPollerInit:
@@ -77,10 +77,18 @@ class TestPollerFetchUpdates:
     """Tests for _fetch_updates method"""
 
     @pytest.mark.asyncio
-    async def test_fetch_updates_calls_api_client(self, bot_config, mock_api_client, sample_update):
+    async def test_fetch_updates_calls_api_client(self, bot_config, mock_api_client):
         """Test _fetch_updates calls API client"""
+        sample_update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         mock_api_client.get_updates = AsyncMock(
-            return_value=AsyncMock(ok=True, updates=[sample_update])
+            return_value=GetUpdatesResponse(ok=True, updates=[sample_update])
         )
         poller = Poller(mock_api_client, bot_config)
         
@@ -93,10 +101,18 @@ class TestPollerFetchUpdates:
         assert call_kwargs["timeout"] == bot_config.polling_timeout
 
     @pytest.mark.asyncio
-    async def test_fetch_updates_returns_updates(self, bot_config, mock_api_client, sample_update):
+    async def test_fetch_updates_returns_updates(self, bot_config, mock_api_client):
         """Test _fetch_updates returns updates from API"""
+        sample_update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         mock_api_client.get_updates = AsyncMock(
-            return_value=AsyncMock(ok=True, updates=[sample_update])
+            return_value=GetUpdatesResponse(ok=True, updates=[sample_update])
         )
         poller = Poller(mock_api_client, bot_config)
         
@@ -106,10 +122,18 @@ class TestPollerFetchUpdates:
         assert updates[0] == sample_update
 
     @pytest.mark.asyncio
-    async def test_fetch_updates_with_custom_offset(self, bot_config, mock_api_client, sample_update):
+    async def test_fetch_updates_with_custom_offset(self, bot_config, mock_api_client):
         """Test _fetch_updates uses custom offset"""
+        sample_update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         mock_api_client.get_updates = AsyncMock(
-            return_value=AsyncMock(ok=True, updates=[sample_update])
+            return_value=GetUpdatesResponse(ok=True, updates=[sample_update])
         )
         poller = Poller(mock_api_client, bot_config)
         
@@ -141,7 +165,7 @@ class TestPollerStart:
         offset_getter = AsyncMock(return_value=0)
         update_callback = AsyncMock()
         mock_api_client.get_updates = AsyncMock(
-            return_value=AsyncMock(ok=True, updates=[])
+            return_value=GetUpdatesResponse(ok=True, updates=[])
         )
         
         await poller.start(offset_getter, update_callback)
@@ -160,7 +184,7 @@ class TestPollerStart:
         offset_getter = AsyncMock(return_value=0)
         update_callback = AsyncMock()
         mock_api_client.get_updates = AsyncMock(
-            return_value=AsyncMock(ok=True, updates=[])
+            return_value=GetUpdatesResponse(ok=True, updates=[])
         )
         
         # Start first time
@@ -181,7 +205,7 @@ class TestPollerStart:
         offset_getter = AsyncMock(return_value=0)
         update_callback = AsyncMock()
         mock_api_client.get_updates = AsyncMock(
-            return_value=AsyncMock(ok=True, updates=[])
+            return_value=GetUpdatesResponse(ok=True, updates=[])
         )
         
         # Set shutdown event
@@ -215,7 +239,7 @@ class TestPollerStop:
         offset_getter = AsyncMock(return_value=0)
         update_callback = AsyncMock()
         mock_api_client.get_updates = AsyncMock(
-            return_value=AsyncMock(ok=True, updates=[])
+            return_value=GetUpdatesResponse(ok=True, updates=[])
         )
         
         await poller.start(offset_getter, update_callback)
@@ -236,10 +260,11 @@ class TestPollerStop:
         async def slow_get_updates(**kwargs):
             call_count[0] += 1
             await asyncio.sleep(0.1)
-            return AsyncMock(ok=True, updates=[])
+            return GetUpdatesResponse(ok=True, updates=[])
         
         mock_api_client.get_updates = AsyncMock(side_effect=slow_get_updates)
         
+         
         await poller.start(offset_getter, update_callback)
         await asyncio.sleep(0.05)  # Let it start
         await poller.stop()
@@ -281,7 +306,7 @@ class TestPollerStop:
         offset_getter = AsyncMock(return_value=0)
         update_callback = AsyncMock()
         mock_api_client.get_updates = AsyncMock(
-            return_value=AsyncMock(ok=True, updates=[])
+            return_value=GetUpdatesResponse(ok=True, updates=[])
         )
         
         await poller.start(offset_getter, update_callback)
@@ -303,7 +328,7 @@ class TestPollerEmptyResponses:
         offset_getter = AsyncMock(return_value=0)
         update_callback = AsyncMock()
         mock_api_client.get_updates = AsyncMock(
-            return_value=AsyncMock(ok=True, updates=[])
+            return_value=GetUpdatesResponse(ok=True, updates=[])
         )
         
         # Start poller in a task
@@ -327,7 +352,7 @@ class TestPollerEmptyResponses:
         assert final_count > 0
 
     @pytest.mark.asyncio
-    async def test_response_resets_counter(self, mock_api_client, sample_update):
+    async def test_response_resets_counter(self, mock_api_client):
         """Test receiving updates resets counter"""
         # Create config with short timeout for faster test
         from ymbot_async.config import BotConfig
@@ -336,23 +361,32 @@ class TestPollerEmptyResponses:
             polling_timeout=0.05,  # Short timeout
         )
         
+        sample_update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
+        
         poller = Poller(mock_api_client, short_timeout_config)
         
         offset_getter = AsyncMock(return_value=0)
         update_callback = AsyncMock()
         
         call_count = [0]
-        update_received = False
+        update_received = [False]
         
         async def get_updates_with_empty_then_updates(**kwargs):
             call_count[0] += 1
             if call_count[0] <= 2:
-                return AsyncMock(ok=True, updates=[])
+                return GetUpdatesResponse(ok=True, updates=[])
             else:
-                if not update_received:
-                    update_received = True
-                    return AsyncMock(ok=True, updates=[sample_update])
-                return AsyncMock(ok=True, updates=[])
+                if not update_received[0]:
+                    update_received[0] = True
+                    return GetUpdatesResponse(ok=True, updates=[sample_update])
+                return GetUpdatesResponse(ok=True, updates=[])
         
         mock_api_client.get_updates = AsyncMock(
             side_effect=get_updates_with_empty_then_updates
@@ -363,7 +397,7 @@ class TestPollerEmptyResponses:
         
         # Wait until update is received
         for _ in range(20):  # max 1 second
-            if update_received:
+            if update_received[0]:
                 break
             await asyncio.sleep(0.05)
         
@@ -403,8 +437,8 @@ class TestPollerEmptyResponses:
             
             # Stop after 3 calls to avoid infinite polling
             if call_count[0] >= 3:
-                return AsyncMock(ok=True, updates=[])
-            return AsyncMock(ok=True, updates=[])
+                return GetUpdatesResponse(ok=True, updates=[])
+            return GetUpdatesResponse(ok=True, updates=[])
         
         mock_api_client.get_updates = AsyncMock(side_effect=get_updates_with_timing)
         
@@ -433,8 +467,17 @@ class TestPollerUpdateProcessing:
     """Tests for update processing"""
 
     @pytest.mark.asyncio
-    async def test_processes_updates_from_api(self, bot_config, mock_api_client, sample_update):
+    async def test_processes_updates_from_api(self, bot_config, mock_api_client):
         """Test poller processes updates from API"""
+        sample_update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
+        
         poller = Poller(mock_api_client, bot_config)
         
         offset_getter = AsyncMock(return_value=0)
@@ -449,8 +492,8 @@ class TestPollerUpdateProcessing:
         async def get_updates_once_then_empty(**kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
-                return AsyncMock(ok=True, updates=[sample_update])
-            return AsyncMock(ok=True, updates=[])
+                return GetUpdatesResponse(ok=True, updates=[sample_update])
+            return GetUpdatesResponse(ok=True, updates=[])
         
         mock_api_client.get_updates = AsyncMock(side_effect=get_updates_once_then_empty)
         
@@ -470,7 +513,14 @@ class TestPollerUpdateProcessing:
         processed_updates = []
         
         updates = [
-            AsyncMock(update_id=i, message=None)
+            Update(
+                update_id=i,
+                message_id=i,
+                timestamp=1704067200,
+                chat=Chat(type="private"),
+                **{"from": Sender(login="12345", display_name="Test User")},
+                text=f"Message {i}",
+            )
             for i in range(1, 4)
         ]
         
@@ -483,8 +533,8 @@ class TestPollerUpdateProcessing:
         async def get_updates_once_then_empty(**kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
-                return AsyncMock(ok=True, updates=updates)
-            return AsyncMock(ok=True, updates=[])
+                return GetUpdatesResponse(ok=True, updates=updates)
+            return GetUpdatesResponse(ok=True, updates=[])
         
         mock_api_client.get_updates = AsyncMock(side_effect=get_updates_once_then_empty)
         
@@ -495,8 +545,17 @@ class TestPollerUpdateProcessing:
         assert len(processed_updates) == 3
 
     @pytest.mark.asyncio
-    async def test_stops_processing_on_shutdown(self, bot_config, mock_api_client, sample_update):
+    async def test_stops_processing_on_shutdown(self, bot_config, mock_api_client):
         """Test poller stops processing updates on shutdown"""
+        sample_update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
+        
         poller = Poller(mock_api_client, bot_config)
         
         offset_getter = AsyncMock(return_value=0)
@@ -512,8 +571,8 @@ class TestPollerUpdateProcessing:
         async def get_updates_once_then_empty(**kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
-                return AsyncMock(ok=True, updates=[sample_update])
-            return AsyncMock(ok=True, updates=[])
+                return GetUpdatesResponse(ok=True, updates=[sample_update])
+            return GetUpdatesResponse(ok=True, updates=[])
         
         mock_api_client.get_updates = AsyncMock(side_effect=get_updates_once_then_empty)
         
@@ -555,7 +614,7 @@ class TestPollerErrorHandling:
             if not recovered[0]:
                 recovered[0] = True
             await asyncio.sleep(0.01)
-            return AsyncMock(ok=True, updates=[])
+            return GetUpdatesResponse(ok=True, updates=[])
         
         mock_api_client.get_updates = AsyncMock(
             side_effect=get_updates_with_error
@@ -585,8 +644,17 @@ class TestPollerErrorHandling:
         assert recovered[0]  # Should have recovered
 
     @pytest.mark.asyncio
-    async def test_handles_callback_error(self, bot_config, mock_api_client, sample_update):
+    async def test_handles_callback_error(self, bot_config, mock_api_client):
         """Test poller handles callback errors gracefully"""
+        sample_update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
+        
         poller = Poller(mock_api_client, bot_config)
         
         offset_getter = AsyncMock(return_value=0)
@@ -600,8 +668,8 @@ class TestPollerErrorHandling:
         async def get_updates_once_then_empty(**kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
-                return AsyncMock(ok=True, updates=[sample_update])
-            return AsyncMock(ok=True, updates=[])
+                return GetUpdatesResponse(ok=True, updates=[sample_update])
+            return GetUpdatesResponse(ok=True, updates=[])
         
         mock_api_client.get_updates = AsyncMock(side_effect=get_updates_once_then_empty)
         
@@ -615,8 +683,17 @@ class TestPollerIntegration:
     """Integration tests for Poller"""
 
     @pytest.mark.asyncio
-    async def test_full_polling_cycle(self, bot_config, mock_api_client, sample_update):
+    async def test_full_polling_cycle(self, bot_config, mock_api_client):
         """Test full polling cycle"""
+        sample_update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
+        
         poller = Poller(mock_api_client, bot_config)
         
         offset_value = [0]
@@ -634,8 +711,8 @@ class TestPollerIntegration:
         async def get_updates(**kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
-                return AsyncMock(ok=True, updates=[sample_update])
-            return AsyncMock(ok=True, updates=[])
+                return GetUpdatesResponse(ok=True, updates=[sample_update])
+            return GetUpdatesResponse(ok=True, updates=[])
         
         mock_api_client.get_updates = AsyncMock(side_effect=get_updates)
         

@@ -13,57 +13,101 @@ from ymbot_async.dispatcher.filters import (
     CallbackDataFilter,
     ChatTypeFilter,
 )
-from ymbot_async.api.schemas import Update, Message, Chat, User
+from ymbot_async.api.schemas import Update, Chat, Sender
 
 
 class TestTextFilter:
     """Tests for TextFilter"""
 
-    def test_text_filter_with_exact_match(self, sample_message):
+    def test_text_filter_with_exact_match(self):
         """Test TextFilter with exact text match"""
-        sample_message.text = "Hello"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         filter_obj = TextFilter(text="Hello")
         assert filter_obj.check(update) is True
 
-    def test_text_filter_with_no_match(self, sample_message):
+    def test_text_filter_with_no_match(self):
         """Test TextFilter with no match"""
-        sample_message.text = "Hello"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         filter_obj = TextFilter(text="Goodbye")
         assert filter_obj.check(update) is False
 
-    def test_text_filter_with_regex_match(self, sample_message):
+    def test_text_filter_with_regex_match(self):
         """Test TextFilter with regex pattern"""
-        sample_message.text = "Hello World"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello World",
+        )
         filter_obj = TextFilter(text=re.compile(r"Hello.*"))
         assert filter_obj.check(update) is True
 
-    def test_text_filter_with_regex_no_match(self, sample_message):
+    def test_text_filter_with_regex_no_match(self):
         """Test TextFilter with regex that doesn't match"""
-        sample_message.text = "Hello World"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello World",
+        )
         filter_obj = TextFilter(text=re.compile(r"Goodbye.*"))
         assert filter_obj.check(update) is False
 
-    def test_text_filter_none_matches_any_text(self, sample_message):
+    def test_text_filter_none_matches_any_text(self):
         """Test TextFilter with None matches any non-empty text"""
-        sample_message.text = "Any text"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Any text",
+        )
         filter_obj = TextFilter(text=None)
         assert filter_obj.check(update) is True
 
-    def test_text_filter_none_no_text(self, sample_message):
+    def test_text_filter_none_no_text(self):
         """Test TextFilter with None doesn't match empty text"""
-        sample_message.text = ""
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="",
+        )
         filter_obj = TextFilter(text=None)
         assert filter_obj.check(update) is False
 
     def test_text_filter_no_message(self):
         """Test TextFilter with no message in update"""
-        update = Update(update_id=1, message=None, callback_query=None)
+        # Update with no text field (empty update)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text=None,
+        )
         filter_obj = TextFilter(text="Hello")
         assert filter_obj.check(update) is False
 
@@ -71,72 +115,133 @@ class TestTextFilter:
 class TestCommandFilter:
     """Tests for CommandFilter"""
 
-    def test_command_filter_with_command(self, sample_message):
+    def test_command_filter_with_command(self):
         """Test CommandFilter matches command"""
-        sample_message.text = "/start"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="/start",
+        )
         filter_obj = CommandFilter(command="start")
         assert filter_obj.check(update) is True
 
-    def test_command_filter_with_slash(self, sample_message):
+    def test_command_filter_with_slash(self):
         """Test CommandFilter matches command with leading slash"""
-        sample_message.text = "/start"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="/start",
+        )
         filter_obj = CommandFilter(command="/start")
         assert filter_obj.check(update) is True
 
-    def test_command_filter_with_args(self, sample_message):
+    def test_command_filter_with_args(self):
         """Test CommandFilter matches command with arguments"""
-        sample_message.text = "/start arg1 arg2"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="/start arg1 arg2",
+        )
         filter_obj = CommandFilter(command="start")
         assert filter_obj.check(update) is True
 
-    def test_command_filter_multiple_commands(self, sample_message):
+    def test_command_filter_multiple_commands(self):
         """Test CommandFilter with multiple commands"""
-        sample_message.text = "/help"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="/help",
+        )
         filter_obj = CommandFilter(command=["start", "help"])
         assert filter_obj.check(update) is True
 
-    def test_command_filter_no_match(self, sample_message):
+    def test_command_filter_no_match(self):
         """Test CommandFilter doesn't match wrong command"""
-        sample_message.text = "/help"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="/help",
+        )
         filter_obj = CommandFilter(command="start")
         assert filter_obj.check(update) is False
 
     def test_command_filter_no_message(self):
         """Test CommandFilter with no message"""
-        update = Update(update_id=1, message=None, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="",
+        )
         filter_obj = CommandFilter(command="start")
         assert filter_obj.check(update) is False
 
-    def test_command_filter_no_text(self, sample_message):
+    def test_command_filter_no_text(self):
         """Test CommandFilter with no text"""
-        sample_message.text = ""
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="",
+        )
         filter_obj = CommandFilter(command="start")
         assert filter_obj.check(update) is False
 
-    def test_command_filter_command_in_middle(self, sample_message):
+    def test_command_filter_command_in_middle(self):
         """Test CommandFilter doesn't match command in middle of text"""
-        sample_message.text = "text /start more"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="text /start more",
+        )
         filter_obj = CommandFilter(command="start")
         assert filter_obj.check(update) is False
 
-    def test_command_filter_deprecated_commands_param(self, sample_message):
+    def test_command_filter_deprecated_commands_param(self):
         """Test CommandFilter with deprecated commands parameter"""
-        sample_message.text = "/start"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="/start",
+        )
         filter_obj = CommandFilter(commands="start")
         assert filter_obj.check(update) is True
 
-    def test_command_filter_case_sensitive(self, sample_message):
+    def test_command_filter_case_sensitive(self):
         """Test CommandFilter is case sensitive"""
-        sample_message.text = "/START"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="/START",
+        )
         filter_obj = CommandFilter(command="start")
         assert filter_obj.check(update) is False
 
@@ -144,37 +249,70 @@ class TestCommandFilter:
 class TestCallbackDataFilter:
     """Tests for CallbackDataFilter"""
 
-    def test_callback_data_filter_with_string(self, sample_message):
+    def test_callback_data_filter_with_string(self):
         """Test CallbackDataFilter with exact string match"""
-        sample_message.text = "btn_click"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        # Note: Yandex API doesn't have callback_query, so this test is for potential future use
+        # or for testing filter behavior with text field
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="btn_click",
+        )
         filter_obj = CallbackDataFilter(callback_data="btn_click")
         assert filter_obj.check(update) is True
 
-    def test_callback_data_filter_no_match(self, sample_message):
+    def test_callback_data_filter_no_match(self):
         """Test CallbackDataFilter with no match"""
-        sample_message.text = "btn_click"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="btn_click",
+        )
         filter_obj = CallbackDataFilter(callback_data="btn_other")
         assert filter_obj.check(update) is False
 
-    def test_callback_data_filter_with_regex(self, sample_message):
+    def test_callback_data_filter_with_regex(self):
         """Test CallbackDataFilter with regex pattern"""
-        sample_message.text = "btn_click_123"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="btn_click_123",
+        )
         filter_obj = CallbackDataFilter(callback_data=re.compile(r"btn_click.*"))
         assert filter_obj.check(update) is True
 
-    def test_callback_data_filter_regex_no_match(self, sample_message):
+    def test_callback_data_filter_regex_no_match(self):
         """Test CallbackDataFilter with regex that doesn't match"""
-        sample_message.text = "btn_click"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="btn_click",
+        )
         filter_obj = CallbackDataFilter(callback_data=re.compile(r"btn_other.*"))
         assert filter_obj.check(update) is False
 
     def test_callback_data_filter_no_message(self):
         """Test CallbackDataFilter with no message"""
-        update = Update(update_id=1, message=None, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text=None,
+        )
         filter_obj = CallbackDataFilter(callback_data="btn_click")
         assert filter_obj.check(update) is False
 
@@ -182,86 +320,145 @@ class TestCallbackDataFilter:
 class TestChatTypeFilter:
     """Tests for ChatTypeFilter"""
 
-    def test_chat_type_filter_private(self, sample_message):
+    def test_chat_type_filter_private(self):
         """Test ChatTypeFilter matches private chat"""
-        sample_message.chat = Chat(id="123", type="private", name="User")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         filter_obj = ChatTypeFilter(chat_type="private")
         assert filter_obj.check(update) is True
 
-    def test_chat_type_filter_group(self, sample_message):
+    def test_chat_type_filter_group(self):
         """Test ChatTypeFilter matches group chat"""
-        sample_message.chat = Chat(id="123", type="group", name="Group")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="group"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         filter_obj = ChatTypeFilter(chat_type="group")
         assert filter_obj.check(update) is True
 
-    def test_chat_type_filter_channel(self, sample_message):
+    def test_chat_type_filter_channel(self):
         """Test ChatTypeFilter matches channel"""
-        sample_message.chat = Chat(id="123", type="channel", name="Channel")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="channel"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         filter_obj = ChatTypeFilter(chat_type="channel")
         assert filter_obj.check(update) is True
 
-    def test_chat_type_filter_multiple_types(self, sample_message):
+    def test_chat_type_filter_multiple_types(self):
         """Test ChatTypeFilter with multiple chat types"""
-        sample_message.chat = Chat(id="123", type="group", name="Group")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="group"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         filter_obj = ChatTypeFilter(chat_type=["private", "group"])
         assert filter_obj.check(update) is True
 
-    def test_chat_type_filter_no_match(self, sample_message):
+    def test_chat_type_filter_no_match(self):
         """Test ChatTypeFilter doesn't match wrong type"""
-        sample_message.chat = Chat(id="123", type="private", name="User")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         filter_obj = ChatTypeFilter(chat_type="group")
         assert filter_obj.check(update) is False
 
     def test_chat_type_filter_no_message(self):
-        """Test ChatTypeFilter with no message"""
-        update = Update(update_id=1, message=None, callback_query=None)
+        """Test ChatTypeFilter with no message (text=None)"""
+        # In Yandex API, chat field exists even when text is None
+        # So ChatTypeFilter will still match the chat type
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text=None,
+        )
         filter_obj = ChatTypeFilter(chat_type="private")
-        assert filter_obj.check(update) is False
+        assert filter_obj.check(update) is True
 
 
 class TestAndFilter:
     """Tests for AndFilter"""
 
-    def test_and_filter_both_match(self, sample_message):
+    def test_and_filter_both_match(self):
         """Test AndFilter when both filters match"""
-        sample_message.text = "Hello"
-        sample_message.chat = Chat(id="123", type="private", name="User")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         text_filter = TextFilter(text="Hello")
         chat_filter = ChatTypeFilter(chat_type="private")
         and_filter = text_filter & chat_filter
         assert and_filter.check(update) is True
 
-    def test_and_filter_one_matches(self, sample_message):
+    def test_and_filter_one_matches(self):
         """Test AndFilter when only one filter matches"""
-        sample_message.text = "Hello"
-        sample_message.chat = Chat(id="123", type="group", name="Group")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="group"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         text_filter = TextFilter(text="Hello")
         chat_filter = ChatTypeFilter(chat_type="private")
         and_filter = text_filter & chat_filter
         assert and_filter.check(update) is False
 
-    def test_and_filter_none_match(self, sample_message):
+    def test_and_filter_none_match(self):
         """Test AndFilter when neither filter matches"""
-        sample_message.text = "Goodbye"
-        sample_message.chat = Chat(id="123", type="group", name="Group")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="group"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Goodbye",
+        )
         text_filter = TextFilter(text="Hello")
         chat_filter = ChatTypeFilter(chat_type="private")
         and_filter = text_filter & chat_filter
         assert and_filter.check(update) is False
 
-    def test_and_filter_multiple_filters(self, sample_message):
+    def test_and_filter_multiple_filters(self):
         """Test AndFilter with more than two filters"""
-        sample_message.text = "Hello"
-        sample_message.chat = Chat(id="123", type="private", name="User")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         filter1 = TextFilter(text="Hello")
         filter2 = ChatTypeFilter(chat_type="private")
         filter3 = TextFilter(text=None)  # Non-empty text
@@ -272,41 +469,61 @@ class TestAndFilter:
 class TestOrFilter:
     """Tests for OrFilter"""
 
-    def test_or_filter_both_match(self, sample_message):
+    def test_or_filter_both_match(self):
         """Test OrFilter when both filters match"""
-        sample_message.text = "Hello"
-        sample_message.chat = Chat(id="123", type="private", name="User")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         text_filter = TextFilter(text="Hello")
         chat_filter = ChatTypeFilter(chat_type="private")
         or_filter = text_filter | chat_filter
         assert or_filter.check(update) is True
 
-    def test_or_filter_one_matches(self, sample_message):
+    def test_or_filter_one_matches(self):
         """Test OrFilter when only one filter matches"""
-        sample_message.text = "Hello"
-        sample_message.chat = Chat(id="123", type="group", name="Group")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="group"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         text_filter = TextFilter(text="Hello")
         chat_filter = ChatTypeFilter(chat_type="private")
         or_filter = text_filter | chat_filter
         assert or_filter.check(update) is True
 
-    def test_or_filter_none_match(self, sample_message):
+    def test_or_filter_none_match(self):
         """Test OrFilter when neither filter matches"""
-        sample_message.text = "Goodbye"
-        sample_message.chat = Chat(id="123", type="group", name="Group")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="group"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Goodbye",
+        )
         text_filter = TextFilter(text="Hello")
         chat_filter = ChatTypeFilter(chat_type="private")
         or_filter = text_filter | chat_filter
         assert or_filter.check(update) is False
 
-    def test_or_filter_multiple_filters(self, sample_message):
+    def test_or_filter_multiple_filters(self):
         """Test OrFilter with more than two filters"""
-        sample_message.text = "Hello"
-        sample_message.chat = Chat(id="123", type="group", name="Group")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="group"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         filter1 = TextFilter(text="Hello")
         filter2 = TextFilter(text="Goodbye")
         filter3 = ChatTypeFilter(chat_type="private")
@@ -317,18 +534,30 @@ class TestOrFilter:
 class TestNotFilter:
     """Tests for NotFilter"""
 
-    def test_not_filter_inverts_true(self, sample_message):
+    def test_not_filter_inverts_true(self):
         """Test NotFilter inverts True to False"""
-        sample_message.text = "Hello"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         text_filter = TextFilter(text="Hello")
         not_filter = ~text_filter
         assert not_filter.check(update) is False
 
-    def test_not_filter_inverts_false(self, sample_message):
+    def test_not_filter_inverts_false(self):
         """Test NotFilter inverts False to True"""
-        sample_message.text = "Goodbye"
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Goodbye",
+        )
         text_filter = TextFilter(text="Hello")
         not_filter = ~text_filter
         assert not_filter.check(update) is True
@@ -337,11 +566,16 @@ class TestNotFilter:
 class TestFilterComposition:
     """Tests for complex filter composition"""
 
-    def test_complex_and_or_combination(self, sample_message):
+    def test_complex_and_or_combination(self):
         """Test complex AND/OR filter combination"""
-        sample_message.text = "/start"
-        sample_message.chat = Chat(id="123", type="private", name="User")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="/start",
+        )
         
         cmd_filter = CommandFilter(command="start")
         private_filter = ChatTypeFilter(chat_type="private")
@@ -351,11 +585,16 @@ class TestFilterComposition:
         combined = (cmd_filter & private_filter) | group_filter
         assert combined.check(update) is True
 
-    def test_nested_negation(self, sample_message):
+    def test_nested_negation(self):
         """Test nested filter negation"""
-        sample_message.text = "Hello"
-        sample_message.chat = Chat(id="123", type="private", name="User")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         
         text_filter = TextFilter(text="Hello")
         chat_filter = ChatTypeFilter(chat_type="group")
@@ -364,11 +603,16 @@ class TestFilterComposition:
         combined = text_filter & ~chat_filter
         assert combined.check(update) is True
 
-    def test_chained_and(self, sample_message):
+    def test_chained_and(self):
         """Test chained AND operations"""
-        sample_message.text = "Hello"
-        sample_message.chat = Chat(id="123", type="private", name="User")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         
         filter1 = TextFilter(text="Hello")
         filter2 = ChatTypeFilter(chat_type="private")
@@ -377,11 +621,16 @@ class TestFilterComposition:
         combined = filter1 & filter2 & filter3
         assert combined.check(update) is True
 
-    def test_chained_or(self, sample_message):
+    def test_chained_or(self):
         """Test chained OR operations"""
-        sample_message.text = "Hello"
-        sample_message.chat = Chat(id="123", type="private", name="User")
-        update = Update(update_id=1, message=sample_message, callback_query=None)
+        update = Update(
+            update_id=1,
+            message_id=1,
+            timestamp=1704067200,
+            chat=Chat(type="private"),
+            **{"from": Sender(login="12345", display_name="Test User")},
+            text="Hello",
+        )
         
         filter1 = TextFilter(text="Hello")
         filter2 = TextFilter(text="Goodbye")
