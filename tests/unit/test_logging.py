@@ -328,6 +328,8 @@ class TestLoggingIntegration:
 
     def test_full_logging_flow(self, caplog):
         """Test full logging flow from setup to output"""
+        import logging
+        
         old_stdout = sys.stdout
         sys.stdout = StringIO()
         
@@ -338,11 +340,13 @@ class TestLoggingIntegration:
             # Get logger
             logger = get_logger("test_flow")
             
-            # Log at different levels
-            logger.debug("Debug message", level="DEBUG")  # Should not appear
-            logger.info("Info message", level="INFO")
-            logger.warning("Warning message", level="WARNING")
-            logger.error("Error message", level="ERROR")
+            # IMPORTANT: Use caplog to capture logs at INFO level
+            with caplog.at_level(logging.INFO):
+                # Log at different levels
+                logger.debug("Debug message", level="DEBUG")  # Should not appear
+                logger.info("Info message", level="INFO")
+                logger.warning("Warning message", level="WARNING")
+                logger.error("Error message", level="ERROR")
             
             # Check output
             assert "Info message" in caplog.text

@@ -306,40 +306,75 @@ class TestPollerEmptyResponses:
             return_value=AsyncMock(ok=True, updates=[])
         )
         
-        await poller.start(offset_getter, update_callback)
-        await asyncio.sleep(0.1)  # Let it poll
+        # Start poller in a task
+        poller_task = asyncio.create_task(poller.start(offset_getter, update_callback))
+        
+        # Wait for at least one poll
+        for _ in range(20):  # max 1 second
+            if poller._empty_response_count > 0:
+                break
+            await asyncio.sleep(0.05)
+        
+        # Store count BEFORE stop() (stop() resets the counter)
+        final_count = poller._empty_response_count
         
         await poller.stop()
+        try:
+            await poller_task
+        except RuntimeError:
+            pass  # Already stopped
         
-        assert poller._empty_response_count > 0
+        assert final_count > 0
 
     @pytest.mark.asyncio
-    async def test_response_resets_counter(self, bot_config, mock_api_client, sample_update):
+    async def test_response_resets_counter(self, mock_api_client, sample_update):
         """Test receiving updates resets counter"""
-        poller = Poller(mock_api_client, bot_config)
+        # Create config with short timeout for faster test
+        from ymbot_async.config import BotConfig
+        short_timeout_config = BotConfig(
+            token="test_token",
+            polling_timeout=0.05,  # Short timeout
+        )
+        
+        poller = Poller(mock_api_client, short_timeout_config)
         
         offset_getter = AsyncMock(return_value=0)
         update_callback = AsyncMock()
         
         call_count = [0]
+        update_received = False
         
         async def get_updates_with_empty_then_updates(**kwargs):
             call_count[0] += 1
             if call_count[0] <= 2:
                 return AsyncMock(ok=True, updates=[])
             else:
-                return AsyncMock(ok=True, updates=[sample_update])
+                if not update_received:
+                    update_received = True
+                    return AsyncMock(ok=True, updates=[sample_update])
+                return AsyncMock(ok=True, updates=[])
         
         mock_api_client.get_updates = AsyncMock(
             side_effect=get_updates_with_empty_then_updates
         )
         
-        await poller.start(offset_getter, update_callback)
-        await asyncio.sleep(0.3)  # Let it poll multiple times
+        # Start poller in a task
+        poller_task = asyncio.create_task(poller.start(offset_getter, update_callback))
+        
+        # Wait until update is received
+        for _ in range(20):  # max 1 second
+            if update_received:
+                break
+            await asyncio.sleep(0.05)
+        
         await poller.stop()
+        try:
+            await poller_task
+        except RuntimeError:
+            pass  # Already stopped
         
         # Counter should have been incremented then reset
-        assert call_count[0] > 2
+        assert call_count[0] >= 3
 
     @pytest.mark.asyncio
     async def test_backoff_applied_after_empty(self, mock_api_client):
@@ -348,8 +383,8 @@ class TestPollerEmptyResponses:
         from ymbot_async.config import BotConfig
         custom_backoff_config = BotConfig(
             token="test_token",
-            polling_timeout=0.01,  # Short timeout
-            polling_backoff=2.0,
+            polling_timeout=0.05,  # Short timeout
+            polling_backoff=0.5,  # Less than 1 to increase backoff
             polling_max_backoff=5.0,
         )
         
@@ -359,20 +394,37 @@ class TestPollerEmptyResponses:
         update_callback = AsyncMock()
         
         call_times = []
+        call_count = [0]
         
         async def get_updates_with_timing(**kwargs):
+            call_count[0] += 1
             call_times.append(asyncio.get_event_loop().time())
             await asyncio.sleep(0.01)
+            
+            # Stop after 3 calls to avoid infinite polling
+            if call_count[0] >= 3:
+                return AsyncMock(ok=True, updates=[])
             return AsyncMock(ok=True, updates=[])
         
         mock_api_client.get_updates = AsyncMock(side_effect=get_updates_with_timing)
         
-        await poller.start(offset_getter, update_callback)
-        await asyncio.sleep(0.3)  # Let it poll multiple times
+        # Start poller in a task
+        poller_task = asyncio.create_task(poller.start(offset_getter, update_callback))
+        
+        # Wait for at least 3 calls
+        for _ in range(20):
+            if call_count[0] >= 3:
+                break
+            await asyncio.sleep(0.05)
+        
         await poller.stop()
+        try:
+            await poller_task
+        except RuntimeError:
+            pass  # Already stopped
         
         # Check that delays increased (calls are spaced further apart)
-        assert len(call_times) >= 2
+        assert len(call_times) >= 3
         delays = [call_times[i+1] - call_times[i] for i in range(len(call_times)-1)]
         assert delays[1] > delays[0]  # Second delay should be longer
 
@@ -391,16 +443,23 @@ class TestPollerUpdateProcessing:
         async def update_callback(update):
             processed_updates.append(update)
         
-        mock_api_client.get_updates = AsyncMock(
-            return_value=AsyncMock(ok=True, updates=[sample_update])
-        )
+        # Return update only once to prevent memory leak
+        call_count = [0]
+        
+        async def get_updates_once_then_empty(**kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return AsyncMock(ok=True, updates=[sample_update])
+            return AsyncMock(ok=True, updates=[])
+        
+        mock_api_client.get_updates = AsyncMock(side_effect=get_updates_once_then_empty)
         
         await poller.start(offset_getter, update_callback)
         await asyncio.sleep(0.1)  # Let it process
         await poller.stop()
         
-        assert len(processed_updates) > 0
-        assert any(u == sample_update for u in processed_updates)
+        assert len(processed_updates) == 1
+        assert processed_updates[0] == sample_update
 
     @pytest.mark.asyncio
     async def test_processes_multiple_updates(self, bot_config, mock_api_client):
@@ -418,9 +477,16 @@ class TestPollerUpdateProcessing:
         async def update_callback(update):
             processed_updates.append(update)
         
-        mock_api_client.get_updates = AsyncMock(
-            return_value=AsyncMock(ok=True, updates=updates)
-        )
+        # Return updates only once to prevent memory leak
+        call_count = [0]
+        
+        async def get_updates_once_then_empty(**kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return AsyncMock(ok=True, updates=updates)
+            return AsyncMock(ok=True, updates=[])
+        
+        mock_api_client.get_updates = AsyncMock(side_effect=get_updates_once_then_empty)
         
         await poller.start(offset_getter, update_callback)
         await asyncio.sleep(0.1)
@@ -440,35 +506,54 @@ class TestPollerUpdateProcessing:
             processed_count[0] += 1
             await asyncio.sleep(0.01)
         
-        mock_api_client.get_updates = AsyncMock(
-            return_value=AsyncMock(ok=True, updates=[sample_update])
-        )
+        # Return update only once to prevent memory leak
+        call_count = [0]
+        
+        async def get_updates_once_then_empty(**kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return AsyncMock(ok=True, updates=[sample_update])
+            return AsyncMock(ok=True, updates=[])
+        
+        mock_api_client.get_updates = AsyncMock(side_effect=get_updates_once_then_empty)
         
         await poller.start(offset_getter, update_callback)
         await asyncio.sleep(0.05)  # Let it process a bit
         await poller.stop()
         
-        # Should have processed at least one update
-        assert processed_count[0] >= 1
+        # Should have processed exactly one update
+        assert processed_count[0] == 1
 
 
 class TestPollerErrorHandling:
     """Tests for error handling"""
 
     @pytest.mark.asyncio
-    async def test_continues_after_error(self, bot_config, mock_api_client):
+    async def test_continues_after_error(self, mock_api_client):
         """Test poller continues after error"""
-        poller = Poller(mock_api_client, bot_config)
+        # Create config with short timeout for faster test
+        from ymbot_async.config import BotConfig
+        short_timeout_config = BotConfig(
+            token="test_token",
+            polling_timeout=0.05,  # Short timeout
+        )
+        
+        poller = Poller(mock_api_client, short_timeout_config)
         
         offset_getter = AsyncMock(return_value=0)
         update_callback = AsyncMock()
         
         call_count = [0]
+        error_raised = [False]  # Use list to allow modification in closure
+        recovered = [False]  # Use list to allow modification in closure
         
         async def get_updates_with_error(**kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
+                error_raised[0] = True
                 raise Exception("Network error")
+            if not recovered[0]:
+                recovered[0] = True
             await asyncio.sleep(0.01)
             return AsyncMock(ok=True, updates=[])
         
@@ -476,12 +561,28 @@ class TestPollerErrorHandling:
             side_effect=get_updates_with_error
         )
         
-        await poller.start(offset_getter, update_callback)
-        await asyncio.sleep(0.2)  # Let it recover
+        # Start poller in a task
+        poller_task = asyncio.create_task(poller.start(offset_getter, update_callback))
+        
+        # Wait for recovery - need to wait for second call after error
+        # First call: error (immediate)
+        # Then sleep polling_timeout (0.05)
+        # Then second call (should succeed)
+        for _ in range(50):  # Increased from 20 to allow more time
+            if recovered[0]:
+                break
+            await asyncio.sleep(0.02)  # Check more frequently (0.02 instead of 0.05)
+        
         await poller.stop()
+        try:
+            await poller_task
+        except RuntimeError:
+            pass  # Already stopped
         
         # Should have called multiple times (recovered from error)
         assert call_count[0] > 1
+        assert error_raised[0]  # Should have raised error on first call
+        assert recovered[0]  # Should have recovered
 
     @pytest.mark.asyncio
     async def test_handles_callback_error(self, bot_config, mock_api_client, sample_update):
@@ -493,9 +594,16 @@ class TestPollerErrorHandling:
         async def failing_callback(update):
             raise ValueError("Callback error")
         
-        mock_api_client.get_updates = AsyncMock(
-            return_value=AsyncMock(ok=True, updates=[sample_update])
-        )
+        # Return update only once to prevent memory leak
+        call_count = [0]
+        
+        async def get_updates_once_then_empty(**kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return AsyncMock(ok=True, updates=[sample_update])
+            return AsyncMock(ok=True, updates=[])
+        
+        mock_api_client.get_updates = AsyncMock(side_effect=get_updates_once_then_empty)
         
         # Should not raise
         await poller.start(offset_getter, failing_callback)

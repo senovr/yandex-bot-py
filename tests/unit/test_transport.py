@@ -51,7 +51,7 @@ class TestHttpxTransport:
         async with transport:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.json.return_value = {"ok": True, "result": "data"}
+            mock_response.json = AsyncMock(return_value={"ok": True, "result": "data"})
             transport._client.request = AsyncMock(return_value=mock_response)
 
             result = await transport.request_json("GET", "/test")
@@ -63,7 +63,7 @@ class TestHttpxTransport:
         async with transport:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.json.return_value = {"ok": True}
+            mock_response.json = AsyncMock(return_value={"ok": True})
             transport._client.request = AsyncMock(return_value=mock_response)
 
             await transport.request_json(
@@ -81,7 +81,7 @@ class TestHttpxTransport:
         async with transport:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.json.return_value = {"ok": True}
+            mock_response.json = AsyncMock(return_value={"ok": True})
             transport._client.request = AsyncMock(return_value=mock_response)
 
             await transport.request_json(
@@ -99,7 +99,7 @@ class TestHttpxTransport:
         async with transport:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.json.return_value = {"ok": True}
+            mock_response.json = AsyncMock(return_value={"ok": True})
             transport._client.request = AsyncMock(return_value=mock_response)
 
             await transport.request(
@@ -117,7 +117,7 @@ class TestHttpxTransport:
         async with transport:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.json.return_value = {"ok": True}
+            mock_response.json = AsyncMock(return_value={"ok": True})
             transport._client.request = AsyncMock(return_value=mock_response)
 
             await transport.request("GET", "/test")
@@ -143,11 +143,11 @@ class TestHttpxTransportRetryLogic:
             # First attempt returns 502, second succeeds
             mock_response_502 = MagicMock()
             mock_response_502.status_code = 502
-            mock_response_502.json.return_value = {"error": "Bad Gateway"}
+            mock_response_502.json = AsyncMock(return_value={"error": "Bad Gateway"})
             
             mock_response_200 = MagicMock()
             mock_response_200.status_code = 200
-            mock_response_200.json.return_value = {"ok": True, "result": "data"}
+            mock_response_200.json = AsyncMock(return_value={"ok": True, "result": "data"})
             
             transport._client.request = AsyncMock(
                 side_effect=[mock_response_502, mock_response_200]
@@ -165,11 +165,11 @@ class TestHttpxTransportRetryLogic:
         async with transport:
             mock_response_503 = MagicMock()
             mock_response_503.status_code = 503
-            mock_response_503.json.return_value = {"error": "Service Unavailable"}
+            mock_response_503.json = AsyncMock(return_value={"error": "Service Unavailable"})
             
             mock_response_200 = MagicMock()
             mock_response_200.status_code = 200
-            mock_response_200.json.return_value = {"ok": True}
+            mock_response_200.json = AsyncMock(return_value={"ok": True})
             
             transport._client.request = AsyncMock(
                 side_effect=[mock_response_503, mock_response_200]
@@ -187,11 +187,11 @@ class TestHttpxTransportRetryLogic:
         async with transport:
             mock_response_504 = MagicMock()
             mock_response_504.status_code = 504
-            mock_response_504.json.return_value = {"error": "Gateway Timeout"}
+            mock_response_504.json = AsyncMock(return_value={"error": "Gateway Timeout"})
             
             mock_response_200 = MagicMock()
             mock_response_200.status_code = 200
-            mock_response_200.json.return_value = {"ok": True}
+            mock_response_200.json = AsyncMock(return_value={"ok": True})
             
             transport._client.request = AsyncMock(
                 side_effect=[mock_response_504, mock_response_200]
@@ -209,7 +209,7 @@ class TestHttpxTransportRetryLogic:
         async with transport:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.json.return_value = {"ok": True}
+            mock_response.json = AsyncMock(return_value={"ok": True})
             
             transport._client.request = AsyncMock(
                 side_effect=[TimeoutError("Timeout"), mock_response]
@@ -227,7 +227,7 @@ class TestHttpxTransportRetryLogic:
         async with transport:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.json.return_value = {"ok": True}
+            mock_response.json = AsyncMock(return_value={"ok": True})
             
             transport._client.request = AsyncMock(
                 side_effect=[ConnectionError("Connection failed"), mock_response]
@@ -245,7 +245,7 @@ class TestHttpxTransportRetryLogic:
         async with transport:
             mock_response_502 = MagicMock()
             mock_response_502.status_code = 502
-            mock_response_502.json.return_value = {"error": "Bad Gateway", "ok": False}
+            mock_response_502.json = AsyncMock(return_value={"error": "Bad Gateway", "ok": False})
             
             transport._client.request = AsyncMock(return_value=mock_response_502)
 
@@ -253,7 +253,7 @@ class TestHttpxTransportRetryLogic:
                 with pytest.raises(ApiError) as exc_info:
                     await transport.request("GET", "/test")
             
-            # After retries, ApiError is raised for non-retryable status
+            # After retries, ApiError is raised for retryable status with ok=False
             assert exc_info.value.status_code == 502
             # 1 initial + 3 retries = 4 total calls before ApiError
             assert transport._client.request.call_count == 4
@@ -264,7 +264,7 @@ class TestHttpxTransportRetryLogic:
         async with transport:
             mock_response_502 = MagicMock()
             mock_response_502.status_code = 502
-            mock_response_502.json.return_value = {"error": "Bad Gateway", "ok": False}
+            mock_response_502.json = AsyncMock(return_value={"error": "Bad Gateway", "ok": False})
             
             transport._client.request = AsyncMock(return_value=mock_response_502)
 
@@ -324,10 +324,10 @@ class TestHttpxTransportErrorHandling:
         async with transport:
             mock_response = MagicMock()
             mock_response.status_code = 400
-            mock_response.json.return_value = {
+            mock_response.json = AsyncMock(return_value={
                 "ok": False,
                 "description": "Bad Request"
-            }
+            })
             
             transport._client.request = AsyncMock(return_value=mock_response)
 
@@ -359,7 +359,7 @@ class TestHttpxTransportErrorHandling:
             # First attempt raises TransportError, second succeeds
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.json.return_value = {"ok": True}
+            mock_response.json = AsyncMock(return_value={"ok": True})
             
             transport._client.request = AsyncMock(
                 side_effect=[TransportError("Transport failed"), mock_response]

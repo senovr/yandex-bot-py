@@ -168,15 +168,17 @@ class TestBotMessageHandler:
             assert len(bot.dispatcher.handlers) == 3
 
     @pytest.mark.asyncio
-    async def test_message_handler_without_context_raises(self, bot_config):
-        """Test message_handler without context raises error"""
+    async def test_message_handler_without_context_allows(self, bot_config):
+        """Test message_handler can be registered outside context"""
         bot = Bot(bot_config)
         
-        # Should raise because not in context
-        with pytest.raises(RuntimeError, match="Bot not initialized"):
-            @bot.message_handler()
-            async def test_handler(update):
-                pass
+        # Should allow handler registration without context
+        @bot.message_handler()
+        async def test_handler(update):
+            pass
+        
+        # Handler should be stored for later registration
+        assert bot._pending_handlers is not None
 
     @pytest.mark.asyncio
     async def test_message_handler_returns_original_function(self, bot_config):
@@ -419,19 +421,13 @@ class TestBotIntegration:
         """Test full bot lifecycle: init, context manager, handler, cleanup"""
         bot = Bot(bot_config)
         
-        # Handler should not work outside context
-        with pytest.raises(RuntimeError):
-            @bot.message_handler()
-            async def handler(update):
-                pass
+        # Handler can be registered outside context now
+        @bot.message_handler()
+        async def handler(update):
+            pass
         
         # Inside context
         async with bot:
-            # Register handler
-            @bot.message_handler()
-            async def handler(update):
-                pass
-            
             # Verify handler registered
             assert len(bot.dispatcher.handlers) == 1
             
