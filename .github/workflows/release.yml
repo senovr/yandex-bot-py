@@ -1,0 +1,174 @@
+name: Build and Release Wheels
+
+on:
+  push:
+    tags:
+      - "v*"
+  # Опционально: manual trigger для тестирования
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build universal wheel
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Для генерации changelog
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+      
+      - name: Build package
+        run: python -m build
+        env:
+          # Hatchling автоматически создаст universal wheel если pure Python
+          SOURCE_DATE_EPOCH: "1"  # Reproducible builds
+      
+      - name: Validate wheel
+        run: |
+          twine check dist/*
+          # Проверить что собрался именно universal wheel
+          ls -lh dist/
+          # Должен быть файл типа: *-py3-none-any.whl
+          if ! ls dist/*-py3-none-any.whl 1> /dev/null 2>&1; then
+            echo "ERROR: Universal wheel not found!"
+            echo "Expected: *-py3-none-any.whl"
+            echo "Got:"
+            ls dist/*.whl
+            exit 1
+          fi
+          echo "✅ Universal wheel validated successfully"
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-wheels
+          path: dist/*.whl
+          retention-days: 5
+
+  create-github-release:
+    name: Publish to GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-wheels
+          path: dist/
+      
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Extract version from tag
+          TAG=${GITHUB_REF#refs/tags/v}
+          echo "version=${TAG}" >> $GITHUB_OUTPUT
+          
+          # Find previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          # Generate changelog
+          if [ -n "$PREV_TAG" ]; then
+            echo "## 📋 What's Changed (since ${PREV_TAG})" > changelog.md
+            echo "" >> changelog.md
+            
+            # Group commits by type
+            echo "### 🚀 Features" >> changelog.md
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --grep="^feat" >> changelog.md || echo "No features" >> changelog.md
+            echo "" >> changelog.md
+            
+            echo "### 🐛 Bug Fixes" >> changelog.md
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --grep="^fix" >> changelog.md || echo "No fixes" >> changelog.md
+            echo "" >> changelog.md
+            
+            echo "### 📚 Documentation" >> changelog.md
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --grep="^docs" >> changelog.md || echo "No docs changes" >> changelog.md
+            echo "" >> changelog.md
+            
+            echo "### 🔧 Other Changes" >> changelog.md
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" \
+              --invert-grep --grep="^feat" --grep="^fix" --grep="^docs" >> changelog.md || echo "No other changes" >> changelog.md
+          else
+            echo "## 🎉 Initial Release (v${TAG})" > changelog.md
+            echo "" >> changelog.md
+            git log --pretty=format:"- %s (%h)" >> changelog.md
+          fi
+          
+          echo "" >> changelog.md
+          echo "---" >> changelog.md
+          echo "" >> changelog.md
+          echo "### 📦 Installation" >> changelog.md
+          echo "" >> changelog.md
+          echo '```bash' >> changelog.md
+          echo "# Download wheel from release assets" >> changelog.md
+          echo "pip install yandex_messenger_bot_async-${TAG}-py3-none-any.whl" >> changelog.md
+          echo '```' >> changelog.md
+          
+          # Display changelog
+          echo "Generated changelog:"
+          cat changelog.md
+          
+          # Add to job summary
+          {
+            echo "### 📝 Changelog Preview"
+            echo '```markdown'
+            cat changelog.md
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
+      
+      - name: List release assets
+        run: |
+          echo "### 📦 Release Assets" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ls -lh dist/ >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: changelog.md
+          files: dist/*.whl
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ОПЦИОНАЛЬНО: Publish to PyPI (закомментировано)
+  # Раскомментируйте если захотите публиковать в PyPI в будущем
+  # publish-pypi:
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   if: false  # Disabled by default
+  #   environment:
+  #     name: pypi
+  #     url: https://pypi.org/p/yandex-messenger-bot-async
+  #   permissions:
+  #     id-token: write
+  #   steps:
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         name: python-wheels
+  #         path: dist/
+  #     - name: Publish to PyPI
+  #       uses: pypa/gh-action-pypi-publish@release/v1
