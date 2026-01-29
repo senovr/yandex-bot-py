@@ -7,14 +7,11 @@ from __future__ import annotations
 import asyncio
 import random
 import types
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
 import httpx
 
 from ymbot_async.config import BotConfig, RetryConfig
-
-if TYPE_CHECKING:
-    from httpx import AsyncClient
 from ymbot_async.errors import ApiError, TransportError
 from ymbot_async.logging import LoggerProtocol, get_logger
 
@@ -43,7 +40,7 @@ class HttpxTransport:
         """
         self.config = config
         self.retry_config = retry_config or RetryConfig()
-        self._client: AsyncClient | None = None  # type: ignore[no-any-unimported]
+        self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> HttpxTransport:
         """Enter async context and create HTTP client."""
