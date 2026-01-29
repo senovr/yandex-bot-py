@@ -3,7 +3,8 @@ Handler base classes and implementations
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from ymbot_async.api.schemas import Update
 
@@ -15,10 +16,10 @@ class Handler(ABC):
     def check(self, update: Update) -> bool:
         """
         Check if handler can handle this update.
-        
+
         Args:
             update: Update to check
-            
+
         Returns:
             True if handler can handle update
         """
@@ -28,10 +29,10 @@ class Handler(ABC):
     async def handle(self, update: Update) -> Any:
         """
         Handle the update.
-        
+
         Args:
             update: Update to handle
-            
+
         Returns:
             Handler result (optional)
         """
@@ -48,7 +49,7 @@ class MessageHandler(Handler):
     ):
         """
         Initialize message handler.
-        
+
         Args:
             callback: Async function to call when handler matches
             filters: Filter(s) to apply
@@ -70,16 +71,9 @@ class MessageHandler(Handler):
             return True
 
         # Support single filter or list of filters
-        filters_list = (
-            self.filters if isinstance(self.filters, list) else [self.filters]
-        )
+        filters_list = self.filters if isinstance(self.filters, list) else [self.filters]
 
-        # All filters must match
-        for filter_obj in filters_list:
-            if not filter_obj.check(update):
-                return False
-
-        return True
+        return all(filter_obj.check(update) for filter_obj in filters_list)
 
 
 class CallbackQueryHandler(Handler):
@@ -92,7 +86,7 @@ class CallbackQueryHandler(Handler):
     ):
         """
         Initialize callback query handler.
-        
+
         Args:
             callback: Async function to call when handler matches
             filters: Filter(s) to apply
@@ -114,13 +108,6 @@ class CallbackQueryHandler(Handler):
             return True
 
         # Support single filter or list of filters
-        filters_list = (
-            self.filters if isinstance(self.filters, list) else [self.filters]
-        )
+        filters_list = self.filters if isinstance(self.filters, list) else [self.filters]
 
-        # All filters must match
-        for filter_obj in filters_list:
-            if not filter_obj.check(update):
-                return False
-
-        return True
+        return all(filter_obj.check(update) for filter_obj in filters_list)

@@ -1,7 +1,8 @@
 """Fixtures for smoke tests"""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from ymbot_async.api.client import ApiClient
 from ymbot_async.bot import Bot
@@ -19,18 +20,18 @@ def bot_config() -> BotConfig:
 def mock_transport():
     """Create a mock HTTP transport."""
     transport = MagicMock(spec=HttpxTransport)
-    
+
     # Mock async context manager methods
     async def mock_aenter():
         return transport
-    
+
     async def mock_aexit(*args):
         pass
-    
+
     transport.__aenter__ = mock_aenter
     transport.__aexit__ = mock_aexit
     transport.request = AsyncMock()
-    
+
     return transport
 
 

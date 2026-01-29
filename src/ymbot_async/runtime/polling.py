@@ -3,12 +3,13 @@ Long polling implementation with backoff
 """
 
 import asyncio
-from typing import Any
+import contextlib
+from collections.abc import Awaitable, Callable
 
 from ymbot_async.api.client import ApiClient
 from ymbot_async.api.schemas import Update
 from ymbot_async.config import BotConfig
-from ymbot_async.logging import get_logger, LoggerProtocol
+from ymbot_async.logging import LoggerProtocol, get_logger
 
 logger: LoggerProtocol = get_logger(__name__)
 
@@ -16,7 +17,7 @@ logger: LoggerProtocol = get_logger(__name__)
 class Poller:
     """
     Long polling implementation with exponential backoff.
-    
+
     Features:
     - Bounded delay on consecutive empty responses
     - Graceful shutdown support
@@ -30,7 +31,7 @@ class Poller:
     ):
         """
         Initialize poller.
-        
+
         Args:
             api_client: API client instance
             config: Bot configuration
@@ -46,7 +47,7 @@ class Poller:
     async def _calculate_backoff(self) -> float:
         """
         Calculate backoff delay based on consecutive empty responses.
-        
+
         Returns:
             Backoff delay in seconds
         """
@@ -61,13 +62,13 @@ class Poller:
     ) -> list[Update]:
         """
         Fetch updates from API.
-        
+
         Args:
             offset: Current offset
-            
+
         Returns:
             List of updates
-            
+
         Raises:
             Exception: If API request fails (retryable)
         """
@@ -80,12 +81,12 @@ class Poller:
 
     async def _polling_loop(
         self,
-        offset_getter,
-        update_callback,
+        offset_getter: Callable[[], Awaitable[int]],
+        update_callback: Callable[[Update], Awaitable[None]],
     ) -> None:
         """
         Main polling loop.
-        
+
         Args:
             offset_getter: Async function to get current offset
             update_callback: Async function to process each update
@@ -149,12 +150,12 @@ class Poller:
 
     async def start(
         self,
-        offset_getter,
-        update_callback,
+        offset_getter: Callable[[], Awaitable[int]],
+        update_callback: Callable[[Update], Awaitable[None]],
     ) -> None:
         """
         Start polling.
-        
+
         Args:
             offset_getter: Async function to get current offset
             update_callback: Async function to process each update
@@ -174,7 +175,7 @@ class Poller:
     async def stop(self) -> None:
         """
         Stop polling gracefully.
-        
+
         Waits for the current polling request to complete.
         """
         if not self._polling_task:
@@ -189,13 +190,11 @@ class Poller:
                 self._polling_task,
                 timeout=self.config.polling_timeout + 5.0,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("Poller stop timed out, cancelling task")
             self._polling_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._polling_task
-            except asyncio.CancelledError:
-                pass
 
         # Clear all references to help garbage collection
         self._polling_task = None

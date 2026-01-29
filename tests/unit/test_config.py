@@ -1,4 +1,7 @@
 """Unit tests for BotConfig and RetryConfig"""
+
+from dataclasses import FrozenInstanceError
+
 import pytest
 
 from ymbot_async.config import BotConfig, RetryConfig
@@ -66,7 +69,7 @@ class TestBotConfig:
     def test_none_token_raises_validation_error(self):
         """Test that None token raises ValidationError"""
         with pytest.raises(ValidationError) as exc_info:
-            BotConfig(token=None)  # type: ignore
+            BotConfig(token=None)
         assert "Token cannot be empty" in str(exc_info.value)
 
     def test_polling_limit_too_high_raises_error(self):
@@ -111,21 +114,21 @@ class TestBotConfig:
         # This test checks that the Literal type is enforced at type-checking time
         # At runtime, Python doesn't enforce Literal, so we just create the config
         # The type checker would catch this
-        config = BotConfig(token="test", log_level="INVALID")  # type: ignore
+        config = BotConfig(token="test", log_level="INVALID")
         # At runtime, this will not raise an error, but type checker would catch it
         assert config.log_level == "INVALID"
 
     def test_invalid_log_format_raises_error(self):
         """Test that invalid log_format raises error"""
         # Similar to log_level, this is type-checked
-        config = BotConfig(token="test", log_format="invalid")  # type: ignore
+        config = BotConfig(token="test", log_format="invalid")
         assert config.log_format == "invalid"
 
     def test_config_is_frozen(self):
         """Test that BotConfig is frozen (immutable)"""
         config = BotConfig(token="test")
-        with pytest.raises(Exception):  # FrozenInstanceError from dataclasses
-            config.token = "new_token"  # type: ignore
+        with pytest.raises(FrozenInstanceError):
+            config.token = "new_token"
 
 
 class TestRetryConfig:

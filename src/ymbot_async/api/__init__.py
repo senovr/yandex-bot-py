@@ -4,17 +4,17 @@ API methods for Yandex Messenger Bot Async Client
 
 from ymbot_async.api.client import ApiClient
 from ymbot_async.api.schemas import (
-    Update,
-    User,
     Chat,
-    Sender,
+    File,
+    GetUpdatesResponse,
+    Image,
     InlineButton,
     InlineKeyboardMarkup,
     MessageResponse,
-    GetUpdatesResponse,
+    Sender,
     SendTextRequest,
-    File,
-    Image,
+    Update,
+    User,
 )
 
 __all__ = [

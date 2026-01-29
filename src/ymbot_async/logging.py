@@ -18,10 +18,10 @@ except ImportError:
 class LoggerProtocol(Protocol):
     """
     Protocol for logger instances that support kwargs.
-    
+
     All logger methods must accept additional keyword arguments for context.
     """
-    
+
     def debug(self, msg: str, **kwargs: Any) -> None: ...
     def info(self, msg: str, **kwargs: Any) -> None: ...
     def warning(self, msg: str, **kwargs: Any) -> None: ...
@@ -36,7 +36,7 @@ def setup_logging(
 ) -> None:
     """
     Setup logging for the library.
-    
+
     Args:
         level: Logging level (DEBUG, INFO, WARNING, ERROR)
         format_type: Log format type (json or text)
@@ -71,38 +71,38 @@ def setup_logging(
 class KwargsLoggerWrapper:
     """
     Wrapper for standard logging.Logger that supports kwargs for context.
-    
+
     This wrapper allows passing additional context via kwargs, which will be
     appended to the log message in a readable format.
     """
-    
+
     def __init__(self, logger: logging.Logger):
         self._logger = logger
-    
+
     def _format_with_kwargs(self, msg: str, **kwargs: Any) -> str:
         """Format message with kwargs as additional context."""
         if not kwargs:
             return msg
-        
+
         context_parts = [f"{k}={v}" for k, v in kwargs.items()]
         context = " | ".join(context_parts)
         return f"{msg} | {context}"
-    
+
     def debug(self, msg: str, **kwargs: Any) -> None:
         self._logger.debug(self._format_with_kwargs(msg, **kwargs))
-    
+
     def info(self, msg: str, **kwargs: Any) -> None:
         self._logger.info(self._format_with_kwargs(msg, **kwargs))
-    
+
     def warning(self, msg: str, **kwargs: Any) -> None:
         self._logger.warning(self._format_with_kwargs(msg, **kwargs))
-    
+
     def error(self, msg: str, **kwargs: Any) -> None:
         self._logger.error(self._format_with_kwargs(msg, **kwargs))
-    
+
     def critical(self, msg: str, **kwargs: Any) -> None:
         self._logger.critical(self._format_with_kwargs(msg, **kwargs))
-    
+
     def exception(self, msg: str, **kwargs: Any) -> None:
         self._logger.exception(self._format_with_kwargs(msg, **kwargs))
 
@@ -110,17 +110,17 @@ class KwargsLoggerWrapper:
 def get_logger(name: str) -> LoggerProtocol:
     """
     Get a logger instance.
-    
+
     Args:
         name: Logger name
-        
+
     Returns:
         Logger instance (structlog or standard logging with kwargs support)
     """
     if HAS_STRUCTLOG:
         # structlog loggers already support kwargs
-        return structlog.get_logger(name)  # type: ignore[return-value]
-    
+        return structlog.get_logger(name)  # type: ignore[no-any-return]
+
     # Return wrapper for standard logging that supports kwargs
     return KwargsLoggerWrapper(logging.getLogger(name))
 

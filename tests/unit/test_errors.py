@@ -1,12 +1,13 @@
 """Unit tests for error classes"""
+
 import pytest
 
 from ymbot_async.errors import (
-    YMBotError,
-    TransportError,
     ApiError,
-    ValidationError,
     OffsetError,
+    TransportError,
+    ValidationError,
+    YMBotError,
     assert_ok,
 )
 

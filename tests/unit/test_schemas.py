@@ -1,18 +1,17 @@
 """Unit tests for Pydantic schemas"""
-import pytest
-from typing import Literal
 
+import pytest
 from pydantic import ValidationError
 
 from ymbot_async.api.schemas import (
     Chat,
-    Sender,
-    Update,
+    GetUpdatesResponse,
     InlineButton,
     InlineKeyboardMarkup,
     MessageResponse,
-    GetUpdatesResponse,
+    Sender,
     SendTextRequest,
+    Update,
 )
 
 
@@ -49,12 +48,12 @@ class TestChat:
     def test_chat_type_invalid(self):
         """Test that invalid Chat type raises error"""
         with pytest.raises(ValidationError):
-            Chat(id="chat_123", type="invalid_type")  # type: ignore
+            Chat(id="chat_123", type="invalid_type")
 
     def test_chat_type_required(self):
         """Test that Chat requires type field"""
         with pytest.raises(ValidationError):
-            Chat(id="chat_123")  # type: ignore
+            Chat(id="chat_123")
 
 
 class TestUpdate:
@@ -83,7 +82,7 @@ class TestUpdate:
                 chat=Chat(type="private"),
                 **{"from": Sender(login="test", display_name="Test")},
                 text="Hello",
-            )  # type: ignore
+            )
 
     def test_update_model_dump(self):
         """Test Update model serialization"""
@@ -120,12 +119,12 @@ class TestInlineButton:
     def test_button_requires_action(self):
         """Test that button requires either url or callback_data"""
         with pytest.raises(ValidationError):
-            InlineButton(text="Click Me")  # type: ignore[call-arg]
+            InlineButton(text="Click Me")
 
     def test_button_text_required(self):
         """Test that button requires text"""
         with pytest.raises(ValidationError):
-            InlineButton(url="https://example.com")  # type: ignore[call-arg]
+            InlineButton(url="https://example.com")
 
     def test_button_url_and_callback_mutually_exclusive(self):
         """Test that button can have url or callback_data but both work"""
@@ -275,9 +274,9 @@ class TestSendTextRequest:
     def test_send_text_chat_id_required(self):
         """Test that chat_id is required"""
         with pytest.raises(ValidationError):
-            SendTextRequest(text="Hello")  # type: ignore
+            SendTextRequest(text="Hello")
 
     def test_send_text_text_required(self):
         """Test that text is required"""
         with pytest.raises(ValidationError):
-            SendTextRequest(chat_id="chat_123")  # type: ignore
+            SendTextRequest(chat_id="chat_123")

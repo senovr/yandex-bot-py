@@ -1,11 +1,11 @@
 """Integration tests for Dispatcher error handling and advanced scenarios"""
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock
 
-from ymbot_async.api.client import ApiClient
-from ymbot_async.api.schemas import Update, Chat, Sender
+import pytest
+
+from ymbot_async.api.schemas import Chat, Sender, Update
 from ymbot_async.config import BotConfig
 from ymbot_async.dispatcher.filters import TextFilter
 from ymbot_async.dispatcher.handlers import MessageHandler
@@ -15,7 +15,7 @@ class TestDispatcherErrorHandling:
     """Tests for error handling in dispatcher"""
 
     @pytest.mark.asyncio
-    async def test_handler_exception_logged_and_continued(self, bot_config, caplog):
+    async def test_handler_exception_logged_and_continued(self, caplog):
         """Test that handler exceptions are logged and processing continues"""
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
@@ -36,12 +36,8 @@ class TestDispatcherErrorHandling:
             pass
 
         # Register handlers
-        dispatcher.register_handler(
-            MessageHandler(failing_handler, TextFilter(text="fail"))
-        )
-        dispatcher.register_handler(
-            MessageHandler(good_handler, TextFilter(text="good"))
-        )
+        dispatcher.register_handler(MessageHandler(failing_handler, TextFilter(text="fail")))
+        dispatcher.register_handler(MessageHandler(good_handler, TextFilter(text="good")))
 
         # Start dispatcher in background
         run_task = asyncio.create_task(dispatcher.run())
@@ -87,9 +83,10 @@ class TestDispatcherErrorHandling:
         ), "Handler exception should be logged"
 
     @pytest.mark.asyncio
-    async def test_no_matching_handler_logged(self, bot_config, caplog):
+    async def test_no_matching_handler_logged(self, caplog):
         """Test that unmatched updates are logged"""
         import logging
+
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
         config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
@@ -126,22 +123,20 @@ class TestDispatcherErrorHandling:
         await run_task
 
         # Check that no handler matched was logged
-        assert any(
-            "No handler matched" in record.message for record in caplog.records
-        ), "No handler matched should be logged"
+        assert any("No handler matched" in record.message for record in caplog.records), (
+            "No handler matched should be logged"
+        )
 
 
 class TestDispatcherConcurrency:
     """Tests for concurrent update processing"""
 
     @pytest.mark.asyncio
-    async def test_concurrent_updates_processed(self, bot_config):
+    async def test_concurrent_updates_processed(self):
         """Test that multiple updates are processed concurrently"""
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
-        config = BotConfig(
-            token="test_token", queue_maxsize=10, concurrency=3
-        )
+        config = BotConfig(token="test_token", queue_maxsize=10, concurrency=3)
         api_client = AsyncMock()
         dispatcher = Dispatcher(api_client, config)
 
@@ -189,13 +184,11 @@ class TestDispatcherConcurrency:
         assert set(processed) == {1, 2, 3, 4}
 
     @pytest.mark.asyncio
-    async def test_concurrency_limit_respected(self, bot_config):
+    async def test_concurrency_limit_respected(self):
         """Test that concurrency limit is respected"""
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
-        config = BotConfig(
-            token="test_token", queue_maxsize=10, concurrency=2
-        )
+        config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
         api_client = AsyncMock()
         dispatcher = Dispatcher(api_client, config)
 
@@ -246,13 +239,11 @@ class TestDispatcherWorkerLifecycle:
     """Tests for worker task lifecycle"""
 
     @pytest.mark.asyncio
-    async def test_worker_task_lifecycle(self, bot_config):
+    async def test_worker_task_lifecycle(self):
         """Test that worker tasks are created and stopped properly"""
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
-        config = BotConfig(
-            token="test_token", queue_maxsize=10, concurrency=3
-        )
+        config = BotConfig(token="test_token", queue_maxsize=10, concurrency=3)
         api_client = AsyncMock()
         dispatcher = Dispatcher(api_client, config)
 
@@ -293,13 +284,11 @@ class TestDispatcherWorkerLifecycle:
         assert set(processed) == {1, 2, 3}
 
     @pytest.mark.asyncio
-    async def test_dispatcher_run_with_updates(self, bot_config):
+    async def test_dispatcher_run_with_updates(self):
         """Test complete dispatcher lifecycle with run() method"""
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
-        config = BotConfig(
-            token="test_token", queue_maxsize=10, concurrency=2
-        )
+        config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
         api_client = AsyncMock()
         dispatcher = Dispatcher(api_client, config)
 
@@ -340,13 +329,11 @@ class TestDispatcherRealHandlerExecution:
     """Tests for real handler execution (not just filtering)"""
 
     @pytest.mark.asyncio
-    async def test_handler_executes_with_update_data(self, bot_config):
+    async def test_handler_executes_with_update_data(self):
         """Test that handler receives and can access update data"""
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
-        config = BotConfig(
-            token="test_token", queue_maxsize=10, concurrency=2
-        )
+        config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
         api_client = AsyncMock()
         dispatcher = Dispatcher(api_client, config)
 
@@ -354,12 +341,14 @@ class TestDispatcherRealHandlerExecution:
 
         async def handler(update):
             # Capture the full update object
-            received_updates.append({
-                'update_id': update.update_id,
-                'message_id': update.message_id,
-                'text': update.text,
-                'chat_id': update.chat.id,
-            })
+            received_updates.append(
+                {
+                    "update_id": update.update_id,
+                    "message_id": update.message_id,
+                    "text": update.text,
+                    "chat_id": update.chat.id,
+                }
+            )
 
         dispatcher.register_handler(MessageHandler(handler, TextFilter(text="test")))
 
@@ -385,37 +374,31 @@ class TestDispatcherRealHandlerExecution:
 
         # Verify handler received correct data
         assert len(received_updates) == 1
-        assert received_updates[0]['update_id'] == 42
-        assert received_updates[0]['message_id'] == 123
-        assert received_updates[0]['text'] == "test"
-        assert received_updates[0]['chat_id'] == "chat456"
+        assert received_updates[0]["update_id"] == 42
+        assert received_updates[0]["message_id"] == 123
+        assert received_updates[0]["text"] == "test"
+        assert received_updates[0]["chat_id"] == "chat456"
 
     @pytest.mark.asyncio
-    async def test_multiple_handlers_first_wins(self, bot_config):
+    async def test_multiple_handlers_first_wins(self):
         """Test that only first matching handler executes"""
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
-        config = BotConfig(
-            token="test_token", queue_maxsize=10, concurrency=2
-        )
+        config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
         api_client = AsyncMock()
         dispatcher = Dispatcher(api_client, config)
 
         handler_calls = []
 
         async def handler1(update):
-            handler_calls.append('handler1')
+            handler_calls.append("handler1")
 
         async def handler2(update):
-            handler_calls.append('handler2')
+            handler_calls.append("handler2")
 
         # Register handlers in specific order
-        dispatcher.register_handler(
-            MessageHandler(handler1, TextFilter(text="test"))
-        )
-        dispatcher.register_handler(
-            MessageHandler(handler2, TextFilter(text="test"))
-        )
+        dispatcher.register_handler(MessageHandler(handler1, TextFilter(text="test")))
+        dispatcher.register_handler(MessageHandler(handler2, TextFilter(text="test")))
 
         # Start dispatcher
         run_task = asyncio.create_task(dispatcher.run())
@@ -437,20 +420,18 @@ class TestDispatcherRealHandlerExecution:
         await run_task
 
         # Verify only first handler was called
-        assert handler_calls == ['handler1'], "Only first matching handler should execute"
+        assert handler_calls == ["handler1"], "Only first matching handler should execute"
 
 
 class TestDispatcherGracefulShutdown:
     """Tests for graceful shutdown behavior"""
 
     @pytest.mark.asyncio
-    async def test_dispatcher_waits_for_running_handlers(self, bot_config):
+    async def test_dispatcher_waits_for_running_handlers(self):
         """Test that dispatcher waits for running handlers to complete"""
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
-        config = BotConfig(
-            token="test_token", queue_maxsize=10, concurrency=2
-        )
+        config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
         api_client = AsyncMock()
         dispatcher = Dispatcher(api_client, config)
 
@@ -463,9 +444,7 @@ class TestDispatcherGracefulShutdown:
             await handler_can_finish.wait()
             handler_finished.set()
 
-        dispatcher.register_handler(
-            MessageHandler(slow_handler, TextFilter(text="test"))
-        )
+        dispatcher.register_handler(MessageHandler(slow_handler, TextFilter(text="test")))
 
         # Start dispatcher
         run_task = asyncio.create_task(dispatcher.run())

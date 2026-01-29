@@ -1,19 +1,19 @@
 """Pytest configuration and shared fixtures"""
+
 import asyncio
-import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from httpx import Response, Request
+from httpx import Request, Response
 
-from ymbot_async.config import BotConfig, RetryConfig
 from ymbot_async.api.schemas import (
     Chat,
-    Sender,
-    Update,
     InlineButton,
     InlineKeyboardMarkup,
+    Sender,
+    Update,
 )
+from ymbot_async.config import BotConfig, RetryConfig
 from ymbot_async.transport.httpx_transport import HttpxTransport
 
 
@@ -107,10 +107,12 @@ def sample_update(sample_chat):
         message_id=1,
         timestamp=1704067200,  # 2024-01-01T00:00:00Z
         chat=sample_chat,
-        **{"from": Sender(
-            login="12345",
-            display_name="Test User",
-        )},
+        **{
+            "from": Sender(
+                login="12345",
+                display_name="Test User",
+            )
+        },
         text="Hello, World!",
     )
 
@@ -128,9 +130,7 @@ def sample_inline_button():
 @pytest.fixture
 def sample_inline_keyboard(sample_inline_button):
     """Create a sample InlineKeyboardMarkup."""
-    return InlineKeyboardMarkup(
-        inline_keyboard=[[sample_inline_button]]
-    )
+    return InlineKeyboardMarkup(inline_keyboard=[[sample_inline_button]])
 
 
 @pytest.fixture
@@ -280,9 +280,11 @@ def sample_command_update(sample_chat):
         message_id=1,
         timestamp=1704067200,
         chat=sample_chat,
-        **{"from": Sender(
-            login="12345",
-            display_name="Test User",
-        )},
+        **{
+            "from": Sender(
+                login="12345",
+                display_name="Test User",
+            )
+        },
         text="/start",
     )

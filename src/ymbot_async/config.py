@@ -12,7 +12,7 @@ from ymbot_async.errors import ValidationError
 class BotConfig:
     """
     Bot configuration with production-safe defaults.
-    
+
     Attributes:
         token: OAuth token for Yandex Bot API
         base_url: Base URL for API (default: official Yandex endpoint)
@@ -76,24 +76,18 @@ class BotConfig:
         if not self.token:
             raise ValidationError("Token cannot be empty", field="token")
         if self.polling_limit > 1000:
-            raise ValidationError(
-                "polling_limit must be <= 1000", field="polling_limit"
-            )
+            raise ValidationError("polling_limit must be <= 1000", field="polling_limit")
         if self.polling_limit <= 0:
-            raise ValidationError(
-                "polling_limit must be > 0", field="polling_limit"
-            )
+            raise ValidationError("polling_limit must be > 0", field="polling_limit")
         if self.max_retries < 0:
-            raise ValidationError(
-                "max_retries must be >= 0", field="max_retries"
-            )
+            raise ValidationError("max_retries must be >= 0", field="max_retries")
 
 
 @dataclass
 class RetryConfig:
     """
     Retry configuration for individual requests.
-    
+
     Attributes:
         max_retries: Maximum retry attempts
         retryable_statuses: HTTP status codes to retry
@@ -101,9 +95,7 @@ class RetryConfig:
     """
 
     max_retries: int = 3
-    retryable_statuses: set[int] = field(
-        default_factory=lambda: {502, 503, 504}
-    )
+    retryable_statuses: set[int] = field(default_factory=lambda: {502, 503, 504})
     # Include httpx exceptions for retry on timeout and network errors
     retryable_exceptions: tuple[type[Exception], ...] = (
         TimeoutError,
@@ -114,6 +106,4 @@ class RetryConfig:
     def __post_init__(self) -> None:
         """Validate retry configuration"""
         if self.max_retries < 0:
-            raise ValidationError(
-                "max_retries must be >= 0", field="max_retries"
-            )
+            raise ValidationError("max_retries must be >= 0", field="max_retries")

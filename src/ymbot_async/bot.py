@@ -3,6 +3,8 @@ Main Bot class for Yandex Messenger Bot Async Client
 """
 
 import asyncio
+import types
+from collections.abc import Callable
 from typing import Any
 
 from ymbot_async.api.client import ApiClient
@@ -10,7 +12,7 @@ from ymbot_async.config import BotConfig
 from ymbot_async.dispatcher.dispatcher import Dispatcher
 from ymbot_async.dispatcher.filters import Filter
 from ymbot_async.dispatcher.handlers import Handler, MessageHandler
-from ymbot_async.logging import get_logger, setup_logging, LoggerProtocol
+from ymbot_async.logging import LoggerProtocol, get_logger, setup_logging
 from ymbot_async.runtime.offset_manager import OffsetManager
 from ymbot_async.runtime.polling import Poller
 from ymbot_async.transport.httpx_transport import HttpxTransport
@@ -21,22 +23,22 @@ logger: LoggerProtocol = get_logger(__name__)
 class Bot:
     """
     Main bot class that orchestrates all components.
-    
+
     Usage:
         ```python
         from ymbot_async import Bot, BotConfig
-        
+
         config = BotConfig(token="your_token")
-        
+
         bot = Bot(config)
-        
+
         @bot.message_handler(commands=["start"])
         async def start_handler(update):
             await bot.api_client.send_message(
                 chat_id=update.message.chat.id,
                 text="Hello!",
             )
-        
+
         await bot.run_polling()
         ```
     """
@@ -47,7 +49,7 @@ class Bot:
     ):
         """
         Initialize bot.
-        
+
         Args:
             config: Bot configuration
         """
@@ -65,7 +67,7 @@ class Bot:
         self.dispatcher: Dispatcher | None = None
         self.offset_manager: OffsetManager | None = None
         self.poller: Poller | None = None
-        
+
         # Store handlers for deferred registration
         self._pending_handlers: list[Handler] = []
 
@@ -75,7 +77,7 @@ class Bot:
             log_format=config.log_format,
         )
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "Bot":
         """Enter async context and initialize components."""
         # Create transport
         self._transport = HttpxTransport(self.config)
@@ -89,7 +91,7 @@ class Bot:
 
         # Create dispatcher
         self.dispatcher = Dispatcher(self.api_client, self.config)
-        
+
         # Register any pending handlers
         for handler in self._pending_handlers:
             self.dispatcher.register_handler(handler)
@@ -101,7 +103,12 @@ class Bot:
         logger.info("Bot components initialized")
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         """Exit async context and cleanup components."""
         logger.info("Cleaning up bot components")
 
@@ -122,16 +129,16 @@ class Bot:
     def message_handler(
         self,
         filters: Filter | None = None,
-    ):
+    ) -> Callable[[Any], Any]:
         """
         Decorator to register a message handler.
-        
+
         Args:
             filters: Filter(s) to apply
-            
+
         Returns:
             Decorator function
-            
+
         Example:
             ```python
             @bot.message_handler(commands=["start"])
@@ -144,10 +151,10 @@ class Bot:
         """
         print(f"DEBUG message_handler: self.dispatcher={self.dispatcher}")
 
-        def decorator(func):
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             print(f"DEBUG decorator: func={func.__name__}")
             handler = MessageHandler(callback=func, filters=filters)
-            
+
             if self.dispatcher:
                 # Dispatcher exists, register immediately
                 logger.debug(
@@ -169,7 +176,7 @@ class Bot:
                     dispatcher_exists=False,
                 )
                 self._pending_handlers.append(handler)
-            
+
             logger.debug(
                 "Message handler registered",
                 function_name=func.__name__,
@@ -181,9 +188,9 @@ class Bot:
     async def _process_update(self, update: Any) -> None:
         """
         Process a single update.
-        
+
         Feeds update to dispatcher and commits offset after processing.
-        
+
         Args:
             update: Update to process
         """
@@ -219,9 +226,9 @@ class Bot:
     async def run_polling(self) -> None:
         """
         Run the bot with long polling.
-        
+
         This method blocks until stop() is called or an error occurs.
-        
+
         Example:
             ```python
             async def main():
@@ -232,9 +239,9 @@ class Bot:
                             chat_id=update.message.chat.id,
                             text="Hello!",
                         )
-                    
+
                     await bot.run_polling()
-            
+
             asyncio.run(main())
             ```
         """
@@ -271,7 +278,7 @@ class Bot:
     async def stop(self) -> None:
         """
         Stop the bot gracefully.
-        
+
         Waits for all running handlers and polling to complete.
         """
         logger.info("Stopping bot")

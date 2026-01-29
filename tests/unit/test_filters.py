@@ -1,19 +1,16 @@
 """Unit tests for filters"""
+
 import re
 
-import pytest
-
+from ymbot_async.api.schemas import Chat, Sender, Update
 from ymbot_async.dispatcher.filters import (
-    Filter,
     AndFilter,
-    OrFilter,
-    NotFilter,
-    TextFilter,
-    CommandFilter,
     CallbackDataFilter,
     ChatTypeFilter,
+    CommandFilter,
+    OrFilter,
+    TextFilter,
 )
-from ymbot_async.api.schemas import Update, Chat, Sender
 
 
 class TestTextFilter:
@@ -576,11 +573,11 @@ class TestFilterComposition:
             **{"from": Sender(login="12345", display_name="Test User")},
             text="/start",
         )
-        
+
         cmd_filter = CommandFilter(command="start")
         private_filter = ChatTypeFilter(chat_type="private")
         group_filter = ChatTypeFilter(chat_type="group")
-        
+
         # (command AND private) OR group
         combined = (cmd_filter & private_filter) | group_filter
         assert combined.check(update) is True
@@ -595,10 +592,10 @@ class TestFilterComposition:
             **{"from": Sender(login="12345", display_name="Test User")},
             text="Hello",
         )
-        
+
         text_filter = TextFilter(text="Hello")
         chat_filter = ChatTypeFilter(chat_type="group")
-        
+
         # text AND NOT group
         combined = text_filter & ~chat_filter
         assert combined.check(update) is True
@@ -613,11 +610,11 @@ class TestFilterComposition:
             **{"from": Sender(login="12345", display_name="Test User")},
             text="Hello",
         )
-        
+
         filter1 = TextFilter(text="Hello")
         filter2 = ChatTypeFilter(chat_type="private")
         filter3 = TextFilter(text=None)
-        
+
         combined = filter1 & filter2 & filter3
         assert combined.check(update) is True
 
@@ -631,10 +628,10 @@ class TestFilterComposition:
             **{"from": Sender(login="12345", display_name="Test User")},
             text="Hello",
         )
-        
+
         filter1 = TextFilter(text="Hello")
         filter2 = TextFilter(text="Goodbye")
         filter3 = TextFilter(text="Test")
-        
+
         combined = filter1 | filter2 | filter3
         assert combined.check(update) is True

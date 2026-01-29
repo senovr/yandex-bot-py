@@ -39,7 +39,7 @@ class TestBotAsyncContext:
         async with bot:
             # Components should be initialized
             assert bot._transport is not None
-        
+
         # After context exit, components should still exist (not None)
         # This is the current behavior - components are kept
         assert bot._transport is not None
@@ -50,10 +50,11 @@ class TestBotMessageHandler:
 
     def test_bot_registers_message_handler_without_context(self, bot):
         """Test that registering handler without context stores it for deferred registration."""
+
         @bot.message_handler()
         async def dummy_handler(update):
             pass
-        
+
         # Handler should be stored in pending handlers
         assert len(bot._pending_handlers) == 1
 

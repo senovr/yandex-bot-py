@@ -2,15 +2,21 @@
 Async HTTP transport using httpx with retry logic
 """
 
+from __future__ import annotations
+
 import asyncio
 import random
-from typing import Any, Literal
+import types
+from typing import TYPE_CHECKING, Any, Literal
 
 import httpx
 
 from ymbot_async.config import BotConfig, RetryConfig
+
+if TYPE_CHECKING:
+    from httpx import AsyncClient
 from ymbot_async.errors import ApiError, TransportError
-from ymbot_async.logging import get_logger, LoggerProtocol
+from ymbot_async.logging import LoggerProtocol, get_logger
 
 logger: LoggerProtocol = get_logger(__name__)
 
@@ -18,7 +24,7 @@ logger: LoggerProtocol = get_logger(__name__)
 class HttpxTransport:
     """
     Async HTTP transport with retry and timeout support.
-    
+
     Manages httpx.AsyncClient lifecycle and implements exponential backoff
     retry logic for transient failures.
     """
@@ -30,16 +36,16 @@ class HttpxTransport:
     ):
         """
         Initialize transport.
-        
+
         Args:
             config: Bot configuration
             retry_config: Retry configuration (uses default if None)
         """
         self.config = config
         self.retry_config = retry_config or RetryConfig()
-        self._client: httpx.AsyncClient | None = None
+        self._client: AsyncClient | None = None  # type: ignore[no-any-unimported]
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> HttpxTransport:
         """Enter async context and create HTTP client."""
         timeout = httpx.Timeout(
             connect=self.config.timeout_connect,
@@ -65,7 +71,12 @@ class HttpxTransport:
         )
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         """Exit async context and close HTTP client."""
         if self._client:
             await self._client.aclose()
@@ -75,21 +86,21 @@ class HttpxTransport:
     def _calculate_backoff(self, attempt: int) -> float:
         """
         Calculate exponential backoff with optional jitter.
-        
+
         Args:
             attempt: Retry attempt number (0-indexed)
-            
+
         Returns:
             Backoff delay in seconds
         """
-        backoff = self.config.retry_backoff_base * (2 ** attempt)
+        backoff = self.config.retry_backoff_base * (2**attempt)
         backoff = min(backoff, self.config.retry_backoff_max)
-        
+
         if self.config.retry_jitter:
             jitter = backoff * 0.1  # 10% jitter
-            backoff = backoff + random.uniform(-jitter, jitter)
-        
-        return backoff
+            backoff = backoff + random.uniform(-jitter, jitter)  # nosec B311
+
+        return float(max(backoff, 0.0))
 
     async def request(
         self,
@@ -103,7 +114,7 @@ class HttpxTransport:
     ) -> dict[str, Any]:
         """
         Make HTTP request with retry logic.
-        
+
         Args:
             method: HTTP method (GET or POST)
             path: API endpoint path
@@ -111,17 +122,17 @@ class HttpxTransport:
             params: Query parameters for GET requests
             headers: Additional headers
             retry_config: Override retry config for this request
-            
+
         Returns:
             Parsed JSON response
-            
+
         Raises:
             TransportError: If request fails after retries
             ApiError: If API returns error response
         """
         retry_cfg = retry_config or self.retry_config
         last_error: Exception | None = None
-        
+
         for attempt in range(retry_cfg.max_retries + 1):
             try:
                 if not self._client:
@@ -129,12 +140,12 @@ class HttpxTransport:
                     raise TransportError(
                         "HTTP client not initialized. Use async with statement.",
                     )
-                
+
                 # Build headers with authorization
                 request_headers = {"Authorization": f"OAuth {self.config.token}"}
                 if headers:
                     request_headers.update(headers)
-                
+
                 response = await self._client.request(
                     method=method,
                     url=path,
@@ -142,36 +153,40 @@ class HttpxTransport:
                     params=params,
                     headers=request_headers,
                 )
-                
+
                 # Check for retryable status codes
-                if response.status_code in retry_cfg.retryable_statuses:
-                    if attempt < retry_cfg.max_retries:
-                        backoff = self._calculate_backoff(attempt)
-                        logger.warning(
-                            "Retryable status code",
-                            status_code=response.status_code,
-                            attempt=attempt + 1,
-                            max_retries=retry_cfg.max_retries,
-                            backoff=round(backoff, 2),
-                        )
-                        await asyncio.sleep(backoff)
-                        continue
-                
+                if (
+                    response.status_code in retry_cfg.retryable_statuses
+                    and attempt < retry_cfg.max_retries
+                ):
+                    backoff = self._calculate_backoff(attempt)
+                    logger.warning(
+                        "Retryable status code",
+                        status_code=response.status_code,
+                        attempt=attempt + 1,
+                        max_retries=retry_cfg.max_retries,
+                        backoff=round(backoff, 2),
+                    )
+                    await asyncio.sleep(backoff)
+                    continue
+
                 # Parse JSON response
                 try:
                     response_data = response.json()
+                    if not isinstance(response_data, dict):
+                        raise TransportError("Expected dict response from API")
                 except Exception as e:
                     raise TransportError(
                         f"Failed to parse JSON response: {e}",
                     ) from e
-                
+
                 # Check for API errors
                 if not response_data.get("ok"):
                     raise ApiError(
                         description=response_data.get("description", "Unknown error"),
                         status_code=response.status_code,
                     )
-                
+
                 # Log successful request
                 logger.debug(
                     "Request successful",
@@ -179,9 +194,9 @@ class HttpxTransport:
                     path=path,
                     status_code=response.status_code,
                 )
-                
+
                 return response_data
-                
+
             except ApiError as e:
                 # Check if this API error has a retryable status code
                 if e.status_code in retry_cfg.retryable_statuses:
@@ -206,7 +221,7 @@ class HttpxTransport:
                         )
                 # Non-retryable API errors are raised immediately
                 raise
-            
+
             except TransportError as e:
                 # Check if this is a client not initialized error - not retryable
                 if "HTTP client not initialized" in str(e):
@@ -232,11 +247,11 @@ class HttpxTransport:
                         exception_message=str(e),
                         max_retries=retry_cfg.max_retries,
                     )
-            
+
             except Exception as e:
                 # Check if this is retryable
                 is_retryable = isinstance(e, tuple(retry_cfg.retryable_exceptions))
-                
+
                 # Also check for httpx-specific exceptions (network/timeouts)
                 if not is_retryable:
                     # httpx timeout exceptions
@@ -248,9 +263,9 @@ class HttpxTransport:
                             httpx.ReadTimeout,
                             httpx.WriteTimeout,
                             httpx.PoolTimeout,
-                        )
+                        ),
                     )
-                
+
                 # Check for httpx network errors
                 if not is_retryable:
                     is_retryable = isinstance(
@@ -259,9 +274,9 @@ class HttpxTransport:
                             httpx.ConnectError,
                             httpx.NetworkError,  # Base class for network errors
                             httpx.ProtocolError,
-                        )
+                        ),
                     )
-                
+
                 if is_retryable:
                     # Retryable exception
                     last_error = e
@@ -292,7 +307,7 @@ class HttpxTransport:
                         exception_message=str(e),
                     )
                     raise TransportError(f"Unexpected error: {e}") from e
-        
+
         # If we get here, all retries failed
         raise TransportError(
             f"Request failed after {retry_cfg.max_retries} retries",
@@ -309,14 +324,14 @@ class HttpxTransport:
     ) -> dict[str, Any]:
         """
         Convenience method for JSON requests.
-        
+
         Args:
             method: HTTP method (GET or POST)
             path: API endpoint path
             json: JSON body for POST requests
             params: Query parameters for GET requests
             headers: Additional headers
-            
+
         Returns:
             Parsed JSON response
         """

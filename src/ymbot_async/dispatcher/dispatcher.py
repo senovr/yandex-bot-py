@@ -3,13 +3,12 @@ Update dispatcher with queue and concurrency control
 """
 
 import asyncio
-from typing import Any
 
 from ymbot_async.api.client import ApiClient
 from ymbot_async.api.schemas import Update
 from ymbot_async.config import BotConfig
 from ymbot_async.dispatcher.handlers import Handler
-from ymbot_async.logging import get_logger, LoggerProtocol
+from ymbot_async.logging import LoggerProtocol, get_logger
 
 logger: LoggerProtocol = get_logger(__name__)
 
@@ -17,7 +16,7 @@ logger: LoggerProtocol = get_logger(__name__)
 class Dispatcher:
     """
     Update dispatcher with bounded queue and concurrency control.
-    
+
     Features:
     - Bounded queue for updates (drops updates when full)
     - Concurrency limit for handlers
@@ -32,7 +31,7 @@ class Dispatcher:
     ):
         """
         Initialize dispatcher.
-        
+
         Args:
             api_client: API client instance
             config: Bot configuration
@@ -67,11 +66,13 @@ class Dispatcher:
     def register_handler(self, handler: Handler) -> None:
         """
         Register a handler.
-        
+
         Args:
             handler: Handler to register
         """
-        print(f"DEBUG dispatcher.register_handler: appending handler, total before={len(self.handlers)}")
+        print(
+            f"DEBUG dispatcher.register_handler: appending handler, total before={len(self.handlers)}"
+        )
         self.handlers.append(handler)
         print(f"DEBUG dispatcher.register_handler: total after={len(self.handlers)}")
         logger.debug(
@@ -83,10 +84,10 @@ class Dispatcher:
     async def feed_update(self, update: Update) -> bool:
         """
         Feed an update to the dispatcher queue.
-        
+
         Args:
             update: Update to feed
-            
+
         Returns:
             True if update was added to queue, False if queue is full (dropped)
         """
@@ -113,7 +114,7 @@ class Dispatcher:
     async def stop(self) -> None:
         """
         Stop the dispatcher gracefully.
-        
+
         Waits for all running handlers to complete, then signals shutdown.
         """
         if self._stopped:
@@ -138,7 +139,7 @@ class Dispatcher:
     async def _process_update(self, update: Update) -> None:
         """
         Process a single update with concurrency control.
-        
+
         Args:
             update: Update to process
         """
@@ -177,7 +178,7 @@ class Dispatcher:
     def _create_worker_task(self) -> asyncio.Task:
         """
         Create a worker task to process updates.
-        
+
         Returns:
             Worker task
         """
@@ -201,7 +202,7 @@ class Dispatcher:
                     self._running_tasks.add(task)
                     task.add_done_callback(self._running_tasks.discard)
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # Timeout is expected - check shutdown and continue
                     continue
                 except Exception as e:
@@ -216,7 +217,7 @@ class Dispatcher:
     async def run(self) -> None:
         """
         Run the dispatcher.
-        
+
         Starts worker tasks and processes updates until stop() is called.
         """
         if self._stopped:
@@ -225,10 +226,7 @@ class Dispatcher:
         logger.info("Starting dispatcher")
 
         # Start worker tasks (one per concurrency limit)
-        worker_tasks = [
-            self._create_worker_task()
-            for _ in range(self.config.concurrency)
-        ]
+        worker_tasks = [self._create_worker_task() for _ in range(self.config.concurrency)]
 
         # Wait for shutdown
         await self._shutdown_event.wait()

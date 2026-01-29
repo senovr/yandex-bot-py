@@ -7,14 +7,14 @@ Async Python client for Yandex Messenger Bot API with production-safe defaults.
 __version__ = "0.1.0"
 
 from ymbot_async.bot import Bot
-from ymbot_async.errors import (
-    YMBotError,
-    TransportError,
-    ApiError,
-    ValidationError,
-    OffsetError,
-)
 from ymbot_async.config import BotConfig
+from ymbot_async.errors import (
+    ApiError,
+    OffsetError,
+    TransportError,
+    ValidationError,
+    YMBotError,
+)
 
 __all__ = [
     "Bot",

@@ -5,10 +5,9 @@ Offset management for long polling
 import asyncio
 from typing import Any
 
-from ymbot_async.api.schemas import Update
 from ymbot_async.config import BotConfig
 from ymbot_async.errors import OffsetError
-from ymbot_async.logging import get_logger, LoggerProtocol
+from ymbot_async.logging import LoggerProtocol, get_logger
 
 logger: LoggerProtocol = get_logger(__name__)
 
@@ -16,7 +15,7 @@ logger: LoggerProtocol = get_logger(__name__)
 class OffsetManager:
     """
     Thread-safe offset manager for long polling.
-    
+
     Features:
     - Save offset only after handler completes successfully
     - Prevent offset regressions
@@ -30,7 +29,7 @@ class OffsetManager:
     ):
         """
         Initialize offset manager.
-        
+
         Args:
             config: Bot configuration
             initial_offset: Initial offset value
@@ -47,7 +46,7 @@ class OffsetManager:
     async def get_offset(self) -> int:
         """
         Get current offset.
-        
+
         Returns:
             Current offset value
         """
@@ -57,17 +56,17 @@ class OffsetManager:
     async def commit_offset(self, update_id: int) -> None:
         """
         Commit offset after successful update processing.
-        
+
         Args:
             update_id: Update ID to commit
-            
+
         Raises:
             OffsetError: If offset would regress (strict regression)
         """
         async with self._offset_lock:
             # Calculate new offset
             new_offset = update_id + 1
-            
+
             # Prevent strict regression (going backwards)
             # Allow same offset (already committed by concurrent task)
             if new_offset < self._current_offset:
@@ -80,7 +79,7 @@ class OffsetManager:
                 raise OffsetError(
                     f"Cannot regress offset from {self._current_offset} to {new_offset}"
                 )
-            
+
             # Skip if already committed (concurrent task committed same offset)
             if new_offset <= self._current_offset:
                 return
@@ -97,10 +96,10 @@ class OffsetManager:
     async def save_offset_to_storage(self) -> dict[str, Any]:
         """
         Save offset to storage.
-        
+
         This is a placeholder for persistent storage (database, file, etc.).
         Override this method to implement custom storage.
-        
+
         Returns:
             Storage response
         """
@@ -115,10 +114,10 @@ class OffsetManager:
     async def load_offset_from_storage(self) -> int:
         """
         Load offset from storage.
-        
+
         This is a placeholder for persistent storage (database, file, etc.).
         Override this method to implement custom storage.
-        
+
         Returns:
             Loaded offset value
         """

@@ -1,4 +1,5 @@
 """Unit tests for ApiClient"""
+
 from unittest.mock import AsyncMock
 
 import pytest
@@ -6,10 +7,9 @@ import pytest
 from ymbot_async.api.client import ApiClient
 from ymbot_async.api.schemas import (
     GetUpdatesResponse,
-    MessageResponse,
-    SendTextRequest,
     InlineButton,
     InlineKeyboardMarkup,
+    MessageResponse,
 )
 
 
@@ -24,9 +24,7 @@ class TestApiClient:
     @pytest.mark.asyncio
     async def test_get_updates_default_params(self, api_client):
         """Test get_updates with default parameters"""
-        api_client.transport.request = AsyncMock(
-            return_value={"ok": True, "updates": []}
-        )
+        api_client.transport.request = AsyncMock(return_value={"ok": True, "updates": []})
 
         result = await api_client.get_updates()
 
@@ -43,9 +41,7 @@ class TestApiClient:
     @pytest.mark.asyncio
     async def test_get_updates_with_offset(self, api_client):
         """Test get_updates with offset parameter"""
-        api_client.transport.request = AsyncMock(
-            return_value={"ok": True, "updates": []}
-        )
+        api_client.transport.request = AsyncMock(return_value={"ok": True, "updates": []})
 
         await api_client.get_updates(offset=10)
 
@@ -55,9 +51,7 @@ class TestApiClient:
     @pytest.mark.asyncio
     async def test_get_updates_with_limit(self, api_client):
         """Test get_updates with custom limit"""
-        api_client.transport.request = AsyncMock(
-            return_value={"ok": True, "updates": []}
-        )
+        api_client.transport.request = AsyncMock(return_value={"ok": True, "updates": []})
 
         await api_client.get_updates(limit=50)
 
@@ -67,9 +61,7 @@ class TestApiClient:
     @pytest.mark.asyncio
     async def test_get_updates_with_timeout(self, api_client):
         """Test get_updates with custom timeout"""
-        api_client.transport.request = AsyncMock(
-            return_value={"ok": True, "updates": []}
-        )
+        api_client.transport.request = AsyncMock(return_value={"ok": True, "updates": []})
 
         await api_client.get_updates(timeout=5.0)
 
@@ -79,9 +71,7 @@ class TestApiClient:
     @pytest.mark.asyncio
     async def test_get_updates_with_all_params(self, api_client):
         """Test get_updates with all parameters"""
-        api_client.transport.request = AsyncMock(
-            return_value={"ok": True, "updates": []}
-        )
+        api_client.transport.request = AsyncMock(return_value={"ok": True, "updates": []})
 
         await api_client.get_updates(offset=100, limit=200, timeout=10.0)
 
@@ -104,7 +94,7 @@ class TestApiClient:
                     "from": {"login": "test_user", "display_name": "Test User"},
                     "text": "Hello",
                 }
-            ]
+            ],
         }
         api_client.transport.request = AsyncMock(return_value=response_data)
 
@@ -159,9 +149,7 @@ class TestApiClientSendMessage:
         )
 
         await api_client.send_message(
-            chat_id="chat_123",
-            text="Hello",
-            inline_keyboard=keyboard.inline_keyboard
+            chat_id="chat_123", text="Hello", inline_keyboard=keyboard.inline_keyboard
         )
 
         call_kwargs = api_client.transport.request.call_args[1]
@@ -171,7 +159,9 @@ class TestApiClientSendMessage:
     async def test_send_message_with_all_params(self, api_client):
         """Test send_message with all parameters"""
         keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineButton(text="Click", url="https://example.com", callback_data=None)]]
+            inline_keyboard=[
+                [InlineButton(text="Click", url="https://example.com", callback_data=None)]
+            ]
         )
         api_client.transport.request = AsyncMock(
             return_value={
@@ -215,10 +205,7 @@ class TestApiClientDeleteMessage:
         """Test delete_message"""
         api_client.transport.request = AsyncMock(return_value={"ok": True})
 
-        result = await api_client.delete_message(
-            chat_id="chat_123",
-            message_id=456
-        )
+        result = await api_client.delete_message(chat_id="chat_123", message_id=456)
 
         assert result == {"ok": True}
         call_kwargs = api_client.transport.request.call_args[1]
@@ -232,11 +219,7 @@ class TestApiClientDeleteMessage:
         """Test delete_message with thread_id"""
         api_client.transport.request = AsyncMock(return_value={"ok": True})
 
-        result = await api_client.delete_message(
-            chat_id="chat_123",
-            message_id=456,
-            thread_id=789
-        )
+        result = await api_client.delete_message(chat_id="chat_123", message_id=456, thread_id=789)
 
         assert result == {"ok": True}
         call_kwargs = api_client.transport.request.call_args[1]
@@ -255,9 +238,8 @@ class TestApiClientErrorHandling:
     async def test_transport_error_propagates(self, api_client):
         """Test that transport errors propagate"""
         from ymbot_async.errors import TransportError
-        api_client.transport.request = AsyncMock(
-            side_effect=TransportError("Connection failed")
-        )
+
+        api_client.transport.request = AsyncMock(side_effect=TransportError("Connection failed"))
 
         with pytest.raises(TransportError) as exc_info:
             await api_client.get_updates()
@@ -267,6 +249,7 @@ class TestApiClientErrorHandling:
     async def test_api_error_propagates(self, api_client):
         """Test that API errors propagate"""
         from ymbot_async.errors import ApiError
+
         api_client.transport.request = AsyncMock(
             side_effect=ApiError("Invalid token", status_code=401)
         )

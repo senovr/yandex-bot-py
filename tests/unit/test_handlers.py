@@ -1,13 +1,14 @@
 """Unit tests for handlers"""
+
 import pytest
 
+from ymbot_async.api.schemas import Chat, Sender, Update
+from ymbot_async.dispatcher.filters import CommandFilter, TextFilter
 from ymbot_async.dispatcher.handlers import (
+    CallbackQueryHandler,
     Handler,
     MessageHandler,
-    CallbackQueryHandler,
 )
-from ymbot_async.dispatcher.filters import TextFilter, CommandFilter
-from ymbot_async.api.schemas import Update, Chat, Sender
 
 
 class TestHandler:
@@ -16,7 +17,7 @@ class TestHandler:
     def test_handler_is_abstract(self):
         """Test that Handler cannot be instantiated directly"""
         with pytest.raises(TypeError):
-            Handler()  # type: ignore
+            Handler()
 
 
 class TestMessageHandler:
@@ -25,6 +26,7 @@ class TestMessageHandler:
     @pytest.mark.asyncio
     async def test_message_handler_calls_callback(self, sample_update):
         """Test that MessageHandler calls callback"""
+
         async def callback(update):
             return "handled"
 
@@ -35,6 +37,7 @@ class TestMessageHandler:
     @pytest.mark.asyncio
     async def test_message_handler_with_no_filters(self, sample_update):
         """Test MessageHandler with no filters matches any message"""
+
         async def callback(update):
             return True
 
@@ -45,7 +48,7 @@ class TestMessageHandler:
     async def test_message_handler_with_single_filter(self, sample_update):
         """Test MessageHandler with single filter"""
         sample_update.text = "Hello"
-        
+
         async def callback(update):
             return True
 
@@ -57,7 +60,7 @@ class TestMessageHandler:
     async def test_message_handler_with_filter_no_match(self, sample_update):
         """Test MessageHandler with filter that doesn't match"""
         sample_update.text = "Goodbye"
-        
+
         async def callback(update):
             return True
 
@@ -70,7 +73,7 @@ class TestMessageHandler:
         """Test MessageHandler with list of filters"""
         sample_update.text = "/start"
         sample_update.chat = Chat(type="private")
-        
+
         async def callback(update):
             return True
 
@@ -86,7 +89,7 @@ class TestMessageHandler:
         """Test MessageHandler with multiple filters where one fails"""
         sample_update.text = "Hello"
         sample_update.chat = Chat(type="private")
-        
+
         async def callback(update):
             return True
 
@@ -100,6 +103,7 @@ class TestMessageHandler:
     @pytest.mark.asyncio
     async def test_message_handler_no_message(self):
         """Test MessageHandler with update without message"""
+
         async def callback(update):
             return True
 
@@ -131,6 +135,7 @@ class TestMessageHandler:
     @pytest.mark.asyncio
     async def test_message_handler_callback_exception(self, sample_update):
         """Test that exceptions in callback propagate"""
+
         async def callback(update):
             raise ValueError("Test error")
 
@@ -141,6 +146,7 @@ class TestMessageHandler:
     @pytest.mark.asyncio
     async def test_message_handler_callback_none_result(self, sample_update):
         """Test that callback can return None"""
+
         async def callback(update):
             return None
 
@@ -156,7 +162,7 @@ class TestCallbackQueryHandler:
     async def test_callback_handler_calls_callback(self, sample_update):
         """Test that CallbackQueryHandler calls callback"""
         sample_update.text = "btn_click"
-        
+
         async def callback(update):
             return "handled"
 
@@ -168,7 +174,7 @@ class TestCallbackQueryHandler:
     async def test_callback_handler_with_no_filters(self, sample_update):
         """Test CallbackQueryHandler with no filters"""
         sample_update.text = "data"
-        
+
         async def callback(update):
             return True
 
@@ -179,11 +185,12 @@ class TestCallbackQueryHandler:
     async def test_callback_handler_with_single_filter(self, sample_update):
         """Test CallbackQueryHandler with single filter"""
         sample_update.text = "btn_click"
-        
+
         async def callback(update):
             return True
 
         from ymbot_async.dispatcher.filters import CallbackDataFilter
+
         filter_obj = CallbackDataFilter(callback_data="btn_click")
         handler = CallbackQueryHandler(callback, filters=filter_obj)
         assert handler.check(sample_update) is True
@@ -192,11 +199,12 @@ class TestCallbackQueryHandler:
     async def test_callback_handler_with_filter_no_match(self, sample_update):
         """Test CallbackQueryHandler with filter that doesn't match"""
         sample_update.text = "btn_other"
-        
+
         async def callback(update):
             return True
 
         from ymbot_async.dispatcher.filters import CallbackDataFilter
+
         filter_obj = CallbackDataFilter(callback_data="btn_click")
         handler = CallbackQueryHandler(callback, filters=filter_obj)
         assert handler.check(sample_update) is False
@@ -205,11 +213,12 @@ class TestCallbackQueryHandler:
     async def test_callback_handler_with_multiple_filters(self, sample_update):
         """Test CallbackQueryHandler with list of filters"""
         sample_update.text = "btn_click"
-        
+
         async def callback(update):
             return True
 
         from ymbot_async.dispatcher.filters import CallbackDataFilter, TextFilter
+
         filters = [
             CallbackDataFilter(callback_data="btn_click"),
             TextFilter(text=None),
@@ -221,11 +230,12 @@ class TestCallbackQueryHandler:
     async def test_callback_handler_multiple_filters_one_fails(self, sample_update):
         """Test CallbackQueryHandler with multiple filters where one fails"""
         sample_update.text = "btn_click"
-        
+
         async def callback(update):
             return True
 
         from ymbot_async.dispatcher.filters import CallbackDataFilter, TextFilter
+
         filters = [
             CallbackDataFilter(callback_data="btn_click"),
             TextFilter(text="other"),
@@ -236,6 +246,7 @@ class TestCallbackQueryHandler:
     @pytest.mark.asyncio
     async def test_callback_handler_no_message(self):
         """Test CallbackQueryHandler with update without message"""
+
         async def callback(update):
             return True
 
@@ -254,7 +265,7 @@ class TestCallbackQueryHandler:
     async def test_callback_handler_no_text(self, sample_update):
         """Test CallbackQueryHandler with message but no text"""
         sample_update.text = ""
-        
+
         async def callback(update):
             return True
 
@@ -279,6 +290,7 @@ class TestCallbackQueryHandler:
     @pytest.mark.asyncio
     async def test_callback_handler_callback_exception(self, sample_update):
         """Test that exceptions in callback propagate"""
+
         async def callback(update):
             raise ValueError("Test error")
 
@@ -289,6 +301,7 @@ class TestCallbackQueryHandler:
     @pytest.mark.asyncio
     async def test_callback_handler_callback_none_result(self, sample_update):
         """Test that callback can return None"""
+
         async def callback(update):
             return None
 

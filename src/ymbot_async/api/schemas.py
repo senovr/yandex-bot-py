@@ -4,7 +4,7 @@ Pydantic schemas for API request/response validation
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class User(BaseModel):
@@ -19,9 +19,7 @@ class User(BaseModel):
 class Chat(BaseModel):
     """Chat information"""
 
-    type: Literal["private", "group", "channel"] = Field(
-        ..., description="Chat type"
-    )
+    type: Literal["private", "group", "channel"] = Field(..., description="Chat type")
     id: str | None = Field(default=None, description="Chat ID (absent for private chats)")
 
 

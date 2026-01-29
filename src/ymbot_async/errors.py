@@ -43,10 +43,10 @@ class OffsetError(YMBotError):
 def assert_ok(response: dict) -> None:
     """
     Check that response has ok=true, raise ApiError if false.
-    
+
     Args:
         response: API response dict
-        
+
     Raises:
         ApiError: if response["ok"] is false or missing
     """

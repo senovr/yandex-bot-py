@@ -10,8 +10,8 @@ from ymbot_async.api.schemas import (
     MessageResponse,
     SendTextRequest,
 )
+from ymbot_async.logging import LoggerProtocol, get_logger
 from ymbot_async.transport.httpx_transport import HttpxTransport
-from ymbot_async.logging import get_logger, LoggerProtocol
 
 logger: LoggerProtocol = get_logger(__name__)
 
@@ -19,14 +19,14 @@ logger: LoggerProtocol = get_logger(__name__)
 class ApiClient:
     """
     High-level API client for Yandex Messenger Bot.
-    
+
     Provides typed methods for API calls using the transport layer.
     """
 
     def __init__(self, transport: HttpxTransport):
         """
         Initialize API client.
-        
+
         Args:
             transport: HTTP transport instance
         """
@@ -40,12 +40,12 @@ class ApiClient:
     ) -> GetUpdatesResponse:
         """
         Get updates via long polling.
-        
+
         Args:
             offset: Offset to start from (exclusive)
             limit: Maximum number of updates (1-1000)
             timeout: Timeout in seconds to wait for new updates
-            
+
         Returns:
             Response with list of updates
         """
@@ -83,7 +83,7 @@ class ApiClient:
     ) -> MessageResponse:
         """
         Send a text message to a chat.
-        
+
         Args:
             chat_id: Chat ID to send message to (for group/channel)
             login: User login to send message to (for private chat)
@@ -95,7 +95,7 @@ class ApiClient:
             disable_web_page_preview: Disable link preview
             thread_id: Thread ID
             inline_keyboard: Inline keyboard markup
-            
+
         Returns:
             Response with sent message
         """
@@ -137,13 +137,13 @@ class ApiClient:
     ) -> dict[str, Any]:
         """
         Delete a message.
-        
+
         Args:
             chat_id: Chat ID (for group/channel)
             login: User login (for private chat)
             message_id: Message ID to delete
             thread_id: Thread ID
-            
+
         Returns:
             API response
         """

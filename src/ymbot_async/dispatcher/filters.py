@@ -4,7 +4,6 @@ Filters for update matching
 
 import re
 from abc import ABC, abstractmethod
-from typing import Any
 
 from ymbot_async.api.schemas import Update
 
@@ -16,14 +15,14 @@ class Filter(ABC):
     def check(self, update: Update) -> bool:
         """
         Check if update matches filter.
-        
+
         Args:
             update: Update to check
-            
+
         Returns:
             True if update matches filter
         """
-        pass
+        ...
 
     def __and__(self, other: "Filter") -> "AndFilter":
         """Combine filters with AND logic"""
@@ -74,7 +73,7 @@ class TextFilter(Filter):
     def __init__(self, text: str | re.Pattern[str] | None = None):
         """
         Initialize text filter.
-        
+
         Args:
             text: Text to match (string or regex pattern)
         """
@@ -82,14 +81,14 @@ class TextFilter(Filter):
 
     def check(self, update: Update) -> bool:
         message_text = update.text
-        
+
         if self.text is None:
             return bool(message_text)
-        
+
         if isinstance(self.text, re.Pattern):
-            return bool(self.text.search(message_text))
-        
-        return self.text == message_text
+            return bool(self.text.search(message_text)) if message_text else False
+
+        return message_text == self.text
 
 
 class CommandFilter(Filter):
@@ -102,7 +101,7 @@ class CommandFilter(Filter):
     ):
         """
         Initialize command filter.
-        
+
         Args:
             command: Command(s) to match (with or without leading /)
             commands: Deprecated - use command parameter instead
@@ -116,24 +115,21 @@ class CommandFilter(Filter):
             self.commands = []
 
         # Normalize commands (add leading / if missing)
-        self.commands = [
-            cmd if cmd.startswith("/") else f"/{cmd}"
-            for cmd in self.commands
-        ]
+        self.commands = [cmd if cmd.startswith("/") else f"/{cmd}" for cmd in self.commands]
 
     def check(self, update: Update) -> bool:
         message_text = update.text
-        
+
         if not message_text:
             return False
-        
+
         # Check if message starts with any command
         for command in self.commands:
             if message_text.startswith(command):
                 # Command must be followed by space or end of string
-                rest = message_text[len(command):]
+                rest = message_text[len(command) :]
                 return not rest or rest.startswith(" ") or rest.startswith("\n")
-        
+
         return False
 
 
@@ -143,7 +139,7 @@ class CallbackDataFilter(Filter):
     def __init__(self, callback_data: str | re.Pattern[str]):
         """
         Initialize callback data filter.
-        
+
         Args:
             callback_data: Callback data to match (string or regex pattern)
         """
@@ -152,14 +148,14 @@ class CallbackDataFilter(Filter):
     def check(self, update: Update) -> bool:
         # Check if update has callback_query
         callback_data = update.text
-        
+
         if callback_data is None:
             return False
-        
+
         if isinstance(self.callback_data, re.Pattern):
             return bool(self.callback_data.search(callback_data))
-        
-        return self.callback_data == callback_data
+
+        return callback_data == self.callback_data
 
 
 class ChatTypeFilter(Filter):
@@ -168,7 +164,7 @@ class ChatTypeFilter(Filter):
     def __init__(self, chat_type: str | list[str]):
         """
         Initialize chat type filter.
-        
+
         Args:
             chat_type: Chat type(s) to match
         """

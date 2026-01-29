@@ -4,7 +4,6 @@ import pytest
 
 from ymbot_async.api.schemas import (
     InlineButton,
-    Update,
 )
 
 
@@ -39,9 +38,7 @@ class TestApiClientGetUpdates:
         mocked_transport.request.return_value = mock_response
 
         # Call get_updates
-        response = await api_client_with_mock.get_updates(
-            offset=0, limit=100, timeout=1.0
-        )
+        response = await api_client_with_mock.get_updates(offset=0, limit=100, timeout=1.0)
 
         # Verify request was made correctly
         mocked_transport.request.assert_called_once_with(
@@ -84,9 +81,7 @@ class TestApiClientGetUpdates:
         )
 
     @pytest.mark.asyncio
-    async def test_get_updates_custom_limit_timeout(
-        self, api_client_with_mock, mocked_transport
-    ):
+    async def test_get_updates_custom_limit_timeout(self, api_client_with_mock, mocked_transport):
         """Test get_updates with custom limit and timeout"""
         mock_response = {"ok": True, "updates": []}
         mocked_transport.request.return_value = mock_response
@@ -112,9 +107,7 @@ class TestApiClientSendMessage:
         }
         mocked_transport.request.return_value = mock_response
 
-        response = await api_client_with_mock.send_message(
-            chat_id="chat1", text="Test message"
-        )
+        response = await api_client_with_mock.send_message(chat_id="chat1", text="Test message")
 
         mocked_transport.request.assert_called_once()
         call_kwargs = mocked_transport.request.call_args.kwargs
@@ -136,9 +129,7 @@ class TestApiClientSendMessage:
         }
         mocked_transport.request.return_value = mock_response
 
-        await api_client_with_mock.send_message(
-            login="user1", text="Test message"
-        )
+        await api_client_with_mock.send_message(login="user1", text="Test message")
 
         call_kwargs = mocked_transport.request.call_args.kwargs
         assert call_kwargs["json"]["login"] == "user1"
@@ -174,9 +165,7 @@ class TestApiClientDeleteMessage:
         mock_response = {"ok": True}
         mocked_transport.request.return_value = mock_response
 
-        response = await api_client_with_mock.delete_message(
-            chat_id="chat1", message_id="msg1"
-        )
+        response = await api_client_with_mock.delete_message(chat_id="chat1", message_id="msg1")
 
         call_kwargs = mocked_transport.request.call_args.kwargs
         assert call_kwargs["method"] == "POST"
