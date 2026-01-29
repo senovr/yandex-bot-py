@@ -32,7 +32,7 @@ jobs:
       
       - name: Build package
         run: python -m build
-        env:
+        # env:
           # Hatchling автоматически создаст universal wheel если pure Python
           # SOURCE_DATE_EPOCH: "1"  # Reproducible builds
       
