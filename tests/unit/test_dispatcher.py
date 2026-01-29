@@ -27,24 +27,23 @@ class MockHandler(Handler):
 class TestDispatcherInit:
     """Tests for Dispatcher initialization"""
 
-    def test_dispatcher_initializes_with_config(self, bot_config, mock_api_client):
+    def test_dispatcher_initializes_with_config(self, bot_config):
         """Test dispatcher uses config for initialization"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
 
-        assert dispatcher.api_client == mock_api_client
         assert dispatcher.config == bot_config
         assert dispatcher.handlers == []
         assert dispatcher._stopped is False
 
-    def test_dispatcher_initializes_queue(self, bot_config, mock_api_client):
+    def test_dispatcher_initializes_queue(self, bot_config):
         """Test dispatcher initializes queue with maxsize from config"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
 
         assert dispatcher._update_queue.maxsize == bot_config.queue_maxsize
 
-    def test_dispatcher_initializes_semaphore(self, bot_config, mock_api_client):
+    def test_dispatcher_initializes_semaphore(self, bot_config):
         """Test dispatcher initializes semaphore with concurrency limit"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
 
         assert dispatcher._concurrency_semaphore._value == bot_config.concurrency
 
@@ -53,9 +52,9 @@ class TestDispatcherRegisterHandler:
     """Tests for register_handler method"""
 
     @pytest.mark.asyncio
-    async def test_register_handler_adds_to_list(self, bot_config, mock_api_client):
+    async def test_register_handler_adds_to_list(self, bot_config):
         """Test register_handler adds handler to list"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
         handler = MockHandler()
 
         dispatcher.register_handler(handler)
@@ -64,9 +63,9 @@ class TestDispatcherRegisterHandler:
         assert dispatcher.handlers[0] == handler
 
     @pytest.mark.asyncio
-    async def test_register_multiple_handlers(self, bot_config, mock_api_client):
+    async def test_register_multiple_handlers(self, bot_config):
         """Test registering multiple handlers"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
         handler1 = MockHandler()
         handler2 = MockHandler()
 
@@ -82,9 +81,9 @@ class TestDispatcherFeedUpdate:
     """Tests for feed_update method"""
 
     @pytest.mark.asyncio
-    async def test_feed_update_adds_to_queue(self, bot_config, mock_api_client, sample_update):
+    async def test_feed_update_adds_to_queue(self, bot_config, sample_update):
         """Test feed_update adds update to queue"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
 
         result = await dispatcher.feed_update(sample_update)
 
@@ -92,10 +91,10 @@ class TestDispatcherFeedUpdate:
         assert dispatcher._update_queue.qsize() == 1
 
     @pytest.mark.asyncio
-    async def test_feed_update_when_queue_full(self, bot_config, mock_api_client, sample_update):
+    async def test_feed_update_when_queue_full(self, bot_config, sample_update):
         """Test feed_update returns False when queue is full"""
         config = dataclasses.replace(bot_config, queue_maxsize=2)
-        dispatcher = Dispatcher(mock_api_client, config)
+        dispatcher = Dispatcher(config)
 
         # Fill queue
         await dispatcher.feed_update(sample_update)
@@ -108,9 +107,9 @@ class TestDispatcherFeedUpdate:
         assert dispatcher._update_queue.qsize() == 2
 
     @pytest.mark.asyncio
-    async def test_feed_update_when_stopped(self, bot_config, mock_api_client, sample_update):
+    async def test_feed_update_when_stopped(self, bot_config, sample_update):
         """Test feed_update returns False when dispatcher is stopped"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
         dispatcher._stopped = True
 
         result = await dispatcher.feed_update(sample_update)
@@ -122,9 +121,9 @@ class TestDispatcherProcessUpdate:
     """Tests for _process_update method"""
 
     @pytest.mark.asyncio
-    async def test_process_update_calls_handler(self, bot_config, mock_api_client, sample_update):
+    async def test_process_update_calls_handler(self, bot_config, sample_update):
         """Test _process_update calls matching handler"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
         handler = MockHandler(should_match=True)
         dispatcher.handlers = [handler]
 
@@ -134,11 +133,9 @@ class TestDispatcherProcessUpdate:
         assert handler.calls[0] == sample_update
 
     @pytest.mark.asyncio
-    async def test_process_update_no_matching_handler(
-        self, bot_config, mock_api_client, sample_update
-    ):
+    async def test_process_update_no_matching_handler(self, bot_config, sample_update):
         """Test _process_update with no matching handler"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
         handler = MockHandler(should_match=False)
         dispatcher.handlers = [handler]
 
@@ -147,11 +144,9 @@ class TestDispatcherProcessUpdate:
         assert len(handler.calls) == 0
 
     @pytest.mark.asyncio
-    async def test_process_update_first_handler_wins(
-        self, bot_config, mock_api_client, sample_update
-    ):
+    async def test_process_update_first_handler_wins(self, bot_config, sample_update):
         """Test first matching handler is executed"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
         handler1 = MockHandler(should_match=True)
         handler2 = MockHandler(should_match=True)
         dispatcher.handlers = [handler1, handler2]
@@ -162,11 +157,9 @@ class TestDispatcherProcessUpdate:
         assert len(handler2.calls) == 0
 
     @pytest.mark.asyncio
-    async def test_process_update_handler_exception(
-        self, bot_config, mock_api_client, sample_update
-    ):
+    async def test_process_update_handler_exception(self, bot_config, sample_update):
         """Test _process_update handles handler exceptions"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
 
         class FailingHandler(Handler):
             def check(self, update):  # noqa: ARG002
@@ -186,10 +179,10 @@ class TestDispatcherConcurrency:
     """Tests for concurrency control"""
 
     @pytest.mark.asyncio
-    async def test_concurrency_limit(self, bot_config, mock_api_client, sample_update):
+    async def test_concurrency_limit(self, bot_config, sample_update):
         """Test dispatcher respects concurrency limit"""
         config = dataclasses.replace(bot_config, concurrency=2, queue_maxsize=10)
-        dispatcher = Dispatcher(mock_api_client, config)
+        dispatcher = Dispatcher(config)
 
         processed = []
 
@@ -221,12 +214,10 @@ class TestDispatcherConcurrency:
         await asyncio.wait_for(run_task, timeout=2.0)
 
     @pytest.mark.asyncio
-    async def test_semaphore_limits_concurrent_tasks(
-        self, bot_config, mock_api_client, sample_update
-    ):
+    async def test_semaphore_limits_concurrent_tasks(self, bot_config, sample_update):
         """Test semaphore limits concurrent handler execution"""
         config = dataclasses.replace(bot_config, concurrency=2, queue_maxsize=10)
-        dispatcher = Dispatcher(mock_api_client, config)
+        dispatcher = Dispatcher(config)
 
         concurrent_count = 0
         max_concurrent = 0
@@ -265,10 +256,10 @@ class TestDispatcherWorker:
     """Tests for worker tasks"""
 
     @pytest.mark.asyncio
-    async def test_worker_processes_updates(self, bot_config, mock_api_client, sample_update):
+    async def test_worker_processes_updates(self, bot_config, sample_update):
         """Test worker processes updates from queue"""
         config = dataclasses.replace(bot_config, concurrency=1)
-        dispatcher = Dispatcher(mock_api_client, config)
+        dispatcher = Dispatcher(config)
 
         handler = MockHandler(should_match=True)
         dispatcher.handlers = [handler]
@@ -287,10 +278,10 @@ class TestDispatcherWorker:
         assert len(handler.calls) == 1
 
     @pytest.mark.asyncio
-    async def test_worker_stops_on_shutdown(self, bot_config, mock_api_client):
+    async def test_worker_stops_on_shutdown(self, bot_config):
         """Test worker stops on shutdown signal"""
         config = dataclasses.replace(bot_config, concurrency=1)
-        dispatcher = Dispatcher(mock_api_client, config)
+        dispatcher = Dispatcher(config)
 
         # Run dispatcher
         run_task = asyncio.create_task(dispatcher.run())
@@ -303,10 +294,10 @@ class TestDispatcherWorker:
         assert run_task.done()
 
     @pytest.mark.asyncio
-    async def test_worker_times_out_waiting_for_update(self, bot_config, mock_api_client):
+    async def test_worker_times_out_waiting_for_update(self, bot_config):
         """Test worker timeout when waiting for update"""
         config = dataclasses.replace(bot_config, concurrency=1)
-        dispatcher = Dispatcher(mock_api_client, config)
+        dispatcher = Dispatcher(config)
 
         # Don't feed any updates, just run
         run_task = asyncio.create_task(dispatcher.run())
@@ -325,19 +316,19 @@ class TestDispatcherStop:
     """Tests for stop method"""
 
     @pytest.mark.asyncio
-    async def test_stop_sets_stopped_flag(self, bot_config, mock_api_client):
+    async def test_stop_sets_stopped_flag(self, bot_config):
         """Test stop sets stopped flag"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
 
         await dispatcher.stop()
 
         assert dispatcher._stopped is True
 
     @pytest.mark.asyncio
-    async def test_stop_waits_for_running_tasks(self, bot_config, mock_api_client, sample_update):
+    async def test_stop_waits_for_running_tasks(self, bot_config, sample_update):
         """Test stop waits for running tasks to complete"""
         config = dataclasses.replace(bot_config, concurrency=2, queue_maxsize=10)
-        dispatcher = Dispatcher(mock_api_client, config)
+        dispatcher = Dispatcher(config)
 
         running = False
 
@@ -370,9 +361,9 @@ class TestDispatcherStop:
         assert run_task.done()
 
     @pytest.mark.asyncio
-    async def test_stop_signals_shutdown(self, bot_config, mock_api_client):
+    async def test_stop_signals_shutdown(self, bot_config):
         """Test stop signals shutdown event"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
 
         async def wait_for_shutdown():
             await dispatcher._shutdown_event.wait()
@@ -387,9 +378,9 @@ class TestDispatcherStop:
         assert result == "shutdown received"
 
     @pytest.mark.asyncio
-    async def test_stop_can_be_called_multiple_times(self, bot_config, mock_api_client):
+    async def test_stop_can_be_called_multiple_times(self, bot_config):
         """Test stop can be called multiple times without error"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
 
         await dispatcher.stop()
         await dispatcher.stop()  # Should not raise
@@ -402,10 +393,10 @@ class TestDispatcherRun:
     """Tests for run method"""
 
     @pytest.mark.asyncio
-    async def test_run_creates_worker_tasks(self, bot_config, mock_api_client):
+    async def test_run_creates_worker_tasks(self, bot_config):
         """Test run creates worker tasks"""
         config = dataclasses.replace(bot_config, concurrency=3)
-        dispatcher = Dispatcher(mock_api_client, config)
+        dispatcher = Dispatcher(config)
 
         run_task = asyncio.create_task(dispatcher.run())
         await asyncio.sleep(0.05)
@@ -420,10 +411,10 @@ class TestDispatcherRun:
         assert run_task.done()
 
     @pytest.mark.asyncio
-    async def test_run_processes_updates(self, bot_config, mock_api_client, sample_update):
+    async def test_run_processes_updates(self, bot_config, sample_update):
         """Test run processes updates"""
         config = dataclasses.replace(bot_config, concurrency=1)
-        dispatcher = Dispatcher(mock_api_client, config)
+        dispatcher = Dispatcher(config)
 
         handler = MockHandler(should_match=True)
         dispatcher.handlers = [handler]
@@ -442,9 +433,9 @@ class TestDispatcherRun:
         assert len(handler.calls) == 1
 
     @pytest.mark.asyncio
-    async def test_run_cannot_start_stopped_dispatcher(self, bot_config, mock_api_client):
+    async def test_run_cannot_start_stopped_dispatcher(self, bot_config):
         """Test run raises error when called on stopped dispatcher"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
         await dispatcher.stop()
 
         with pytest.raises(RuntimeError, match="Cannot start stopped dispatcher"):
@@ -455,9 +446,9 @@ class TestDispatcherIntegration:
     """Integration tests for Dispatcher"""
 
     @pytest.mark.asyncio
-    async def test_full_workflow(self, bot_config, mock_api_client, sample_update):
+    async def test_full_workflow(self, bot_config, sample_update):
         """Test full dispatcher workflow"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
 
         handler = MockHandler(should_match=True)
         dispatcher.register_handler(handler)
@@ -478,11 +469,9 @@ class TestDispatcherIntegration:
         assert len(handler.calls) == 5
 
     @pytest.mark.asyncio
-    async def test_multiple_handlers_different_filters(
-        self, bot_config, mock_api_client, sample_update
-    ):
+    async def test_multiple_handlers_different_filters(self, bot_config, sample_update):
         """Test dispatcher with multiple handlers with different filters"""
-        dispatcher = Dispatcher(mock_api_client, bot_config)
+        dispatcher = Dispatcher(bot_config)
 
         handler1 = MockHandler(should_match=True)
         handler2 = MockHandler(should_match=False)

@@ -90,7 +90,7 @@ class Bot:
         self.offset_manager = OffsetManager(self.config)
 
         # Create dispatcher
-        self.dispatcher = Dispatcher(self.api_client, self.config)
+        self.dispatcher = Dispatcher(self.config)
 
         # Register any pending handlers
         for handler in self._pending_handlers:
@@ -147,12 +147,10 @@ class Bot:
                     chat_id=update.message.chat.id,
                     text="Hello!",
                 )
-            ````
+            ```
         """
-        print(f"DEBUG message_handler: self.dispatcher={self.dispatcher}")
 
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-            print(f"DEBUG decorator: func={func.__name__}")
             handler = MessageHandler(callback=func, filters=filters)
 
             if self.dispatcher:

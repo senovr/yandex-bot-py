@@ -48,12 +48,20 @@ class TestApiClientGetUpdates:
         )
 
         # Verify response
-        assert response.ok is True
-        assert len(response.updates) == 2
-        assert response.updates[0].update_id == 1
-        assert response.updates[0].text == "Hello"
-        assert response.updates[1].update_id == 2
-        assert response.updates[1].text == "World"
+        assert response.ok is True, "expected response.ok to be True"
+        assert len(response.updates) == 2, f"expected 2 updates but got {len(response.updates)}"
+        assert response.updates[0].update_id == 1, (
+            f"expected first update.update_id to be 1 but got {response.updates[0].update_id}"
+        )
+        assert response.updates[0].text == "Hello", (
+            f"expected first update.text to be 'Hello' but got '{response.updates[0].text}'"
+        )
+        assert response.updates[1].update_id == 2, (
+            f"expected second update.update_id to be 2 but got {response.updates[1].update_id}"
+        )
+        assert response.updates[1].text == "World", (
+            f"expected second update.text to be 'World' but got '{response.updates[1].text}'"
+        )
 
     @pytest.mark.asyncio
     async def test_get_updates_empty(self, api_client_with_mock, mocked_transport):

@@ -1,7 +1,6 @@
 """Integration tests for Dispatcher error handling and advanced scenarios"""
 
 import asyncio
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -21,8 +20,7 @@ class TestDispatcherErrorHandling:
 
         # Create dispatcher with small queue for testing
         config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
-        api_client = AsyncMock()
-        dispatcher = Dispatcher(api_client, config)
+        dispatcher = Dispatcher(config)
 
         # Track if handler was called
         handler_called = asyncio.Event()
@@ -90,8 +88,7 @@ class TestDispatcherErrorHandling:
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
         config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
-        api_client = AsyncMock()
-        dispatcher = Dispatcher(api_client, config)
+        dispatcher = Dispatcher(config)
 
         # Capture DEBUG level logs
         caplog.set_level(logging.DEBUG)
@@ -137,8 +134,7 @@ class TestDispatcherConcurrency:
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
         config = BotConfig(token="test_token", queue_maxsize=10, concurrency=3)
-        api_client = AsyncMock()
-        dispatcher = Dispatcher(api_client, config)
+        dispatcher = Dispatcher(config)
 
         # Track processed updates
         processed = []
@@ -189,8 +185,7 @@ class TestDispatcherConcurrency:
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
         config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
-        api_client = AsyncMock()
-        dispatcher = Dispatcher(api_client, config)
+        dispatcher = Dispatcher(config)
 
         # Track concurrent processing
         max_concurrent = 0
@@ -244,8 +239,7 @@ class TestDispatcherWorkerLifecycle:
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
         config = BotConfig(token="test_token", queue_maxsize=10, concurrency=3)
-        api_client = AsyncMock()
-        dispatcher = Dispatcher(api_client, config)
+        dispatcher = Dispatcher(config)
 
         processed = []
 
@@ -289,8 +283,7 @@ class TestDispatcherWorkerLifecycle:
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
         config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
-        api_client = AsyncMock()
-        dispatcher = Dispatcher(api_client, config)
+        dispatcher = Dispatcher(config)
 
         processed = []
 
@@ -334,8 +327,7 @@ class TestDispatcherRealHandlerExecution:
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
         config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
-        api_client = AsyncMock()
-        dispatcher = Dispatcher(api_client, config)
+        dispatcher = Dispatcher(config)
 
         received_updates = []
 
@@ -385,8 +377,7 @@ class TestDispatcherRealHandlerExecution:
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
         config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
-        api_client = AsyncMock()
-        dispatcher = Dispatcher(api_client, config)
+        dispatcher = Dispatcher(config)
 
         handler_calls = []
 
@@ -432,8 +423,7 @@ class TestDispatcherGracefulShutdown:
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
         config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
-        api_client = AsyncMock()
-        dispatcher = Dispatcher(api_client, config)
+        dispatcher = Dispatcher(config)
 
         handler_started = asyncio.Event()
         handler_can_finish = asyncio.Event()

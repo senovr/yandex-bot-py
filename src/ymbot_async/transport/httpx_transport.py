@@ -30,7 +30,7 @@ class HttpxTransport:
         self,
         config: BotConfig,
         retry_config: RetryConfig | None = None,
-    ):
+    ) -> None:
         """
         Initialize transport.
 

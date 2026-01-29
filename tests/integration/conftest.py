@@ -25,7 +25,7 @@ def mock_httpx_client():
     # Create a mock response
     mock_response = MagicMock(spec=Response)
     mock_response.status_code = 200
-    mock_response.json = AsyncMock(return_value={"result": []})
+    mock_response.json = MagicMock(return_value={"result": []})
     mock_response.content = b'{"result": []}'
     mock_response.headers = {}
 

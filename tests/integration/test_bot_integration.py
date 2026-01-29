@@ -13,11 +13,11 @@ class TestBotLifecycleIntegration:
         """Test that bot initializes all components on start."""
         async with Bot(bot_config) as bot:
             # All components should be initialized
-            assert bot._transport is not None
-            assert bot.api_client is not None
-            assert bot.dispatcher is not None
-            assert bot.poller is not None
-            assert bot.offset_manager is not None
+            assert bot._transport is not None, "transport should be initialized"
+            assert bot.api_client is not None, "api_client should be initialized"
+            assert bot.dispatcher is not None, "dispatcher should be initialized"
+            assert bot.poller is not None, "poller should be initialized"
+            assert bot.offset_manager is not None, "offset_manager should be initialized"
 
     @pytest.mark.asyncio
     async def test_bot_context_manager_cleanup(self, bot_config):

@@ -4,7 +4,6 @@ Update dispatcher with queue and concurrency control
 
 import asyncio
 
-from ymbot_async.api.client import ApiClient
 from ymbot_async.api.schemas import Update
 from ymbot_async.config import BotConfig
 from ymbot_async.dispatcher.handlers import Handler
@@ -26,17 +25,14 @@ class Dispatcher:
 
     def __init__(
         self,
-        api_client: ApiClient,
         config: BotConfig,
     ):
         """
         Initialize dispatcher.
 
         Args:
-            api_client: API client instance
             config: Bot configuration
         """
-        self.api_client = api_client
         self.config = config
         self.handlers: list[Handler] = []
 

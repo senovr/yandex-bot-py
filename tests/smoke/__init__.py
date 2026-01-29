@@ -1,1 +1,1 @@
-# Smoke tests package
+"""Smoke tests package"""
