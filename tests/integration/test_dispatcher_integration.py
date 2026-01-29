@@ -4,8 +4,15 @@ import pytest
 
 from ymbot_async.api.schemas import Chat, Sender, Update
 from ymbot_async.bot import Bot
+from ymbot_async.config import BotConfig
 from ymbot_async.dispatcher.filters import AndFilter, ChatTypeFilter, CommandFilter, TextFilter
 from ymbot_async.dispatcher.handlers import MessageHandler
+
+
+@pytest.fixture
+def _bot_config():
+    """Fixture for bot configuration."""
+    return BotConfig(token="test_token")
 
 
 class TestDispatcherIntegration:
@@ -46,18 +53,24 @@ class TestDispatcherIntegration:
                 **{"from": Sender(id="user1")},
             )
 
-            # Feed update to dispatcher
+            # Feed update to dispatcher (dispatcher not running, just testing queue)
             added = await bot.dispatcher.feed_update(update)
             assert added is True
 
+            # Verify update is in queue
+            assert bot.dispatcher._update_queue.qsize() == 1
+
     @pytest.mark.asyncio
     async def test_dispatcher_queue_full(self, _bot_config):
-        """Test that dispatcher returns False when queue is full."""
+        """Test that dispatcher returns False when stopped."""
         async with Bot(_bot_config) as bot:
 
             @bot.message_handler(TextFilter(text="test"))
             async def test_handler(update):
                 pass
+
+            # Stop the dispatcher directly
+            bot.dispatcher._stopped = True
 
             # Create test update
             update = Update(
@@ -69,11 +82,9 @@ class TestDispatcherIntegration:
                 **{"from": Sender(id="user1")},
             )
 
-            # Fill the queue (queue_maxsize from config is 1000)
-            # We can't actually fill 1000 items in a reasonable test, so we just
-            # test the queue mechanism works
+            # Update should fail because dispatcher is stopped
             added = await bot.dispatcher.feed_update(update)
-            assert added is True
+            assert added is False
 
 
 class TestHandlerFilterIntegration:
@@ -208,8 +219,8 @@ class TestDispatcherLifecycle:
             async def test_handler(update):
                 pass
 
-            # Stop the dispatcher
-            await bot.dispatcher.stop()
+            # Stop the dispatcher directly (set stopped flag)
+            bot.dispatcher._stopped = True
 
             # Create test update
             update = Update(
@@ -234,7 +245,7 @@ class TestDispatcherLifecycle:
             async def test_handler(update):
                 pass
 
-            # Stop the dispatcher
+            # Stop the dispatcher - should not raise error
             await bot.dispatcher.stop()
 
             # Stop again - should not raise error

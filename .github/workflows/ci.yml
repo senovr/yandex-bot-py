@@ -39,7 +39,8 @@ jobs:
         run: mypy src/
 
       - name: Run tests (pytest)
-        run: pytest tests/ -v --cov=src/ymbot_async --cov-report=term-missing -m "not e2e"
+        run: pytest tests/ -v --cov=src/ymbot_async --cov-report=term-missing --cov-report=xml -m "not e2e"
+        
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
