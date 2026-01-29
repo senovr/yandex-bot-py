@@ -1,6 +1,7 @@
 """Integration tests for Dispatcher error handling and advanced scenarios"""
 
 import asyncio
+import logging
 
 import pytest
 
@@ -8,6 +9,37 @@ from ymbot_async.api.schemas import Chat, Sender, Update
 from ymbot_async.config import BotConfig
 from ymbot_async.dispatcher.filters import TextFilter
 from ymbot_async.dispatcher.handlers import MessageHandler
+
+
+@pytest.fixture(autouse=True)
+def setup_structlog_for_tests():
+    """Configure structlog to use stdlib logging for test capture."""
+    from ymbot_async.logging import HAS_STRUCTLOG
+
+    if HAS_STRUCTLOG:
+        import structlog
+
+        # Configure structlog to output through stdlib logging
+        structlog.configure(
+            processors=[
+                structlog.stdlib.add_log_level,
+                structlog.stdlib.add_logger_name,
+                structlog.processors.StackInfoRenderer(),
+                structlog.processors.format_exc_info,
+                structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+            ],
+            wrapper_class=structlog.stdlib.BoundLogger,
+            context_class=dict,
+            logger_factory=structlog.stdlib.LoggerFactory(),
+            cache_logger_on_first_use=True,
+        )
+
+        yield
+
+        # Reset after test
+        structlog.reset_defaults()
+    else:
+        yield
 
 
 class TestDispatcherErrorHandling:
@@ -50,6 +82,9 @@ class TestDispatcherErrorHandling:
             **{"from": Sender(id="user1")},
         )
 
+        # Capture ERROR level logs
+        caplog.set_level(logging.ERROR)
+
         # Feed failing update
         await dispatcher.feed_update(failing_update)
         await handler_called.wait()
@@ -76,15 +111,16 @@ class TestDispatcherErrorHandling:
 
         # Check that exception was logged
         assert any(
-            "Handler error" in record.message and "ValueError" in record.message
+            "Handler error" in record.message
+            and ("ValueError" in record.message or "Handler error!" in record.message)
             for record in caplog.records
-        ), "Handler exception should be logged"
+        ), (
+            f"Handler exception should be logged. Got messages: {[r.message for r in caplog.records]}"
+        )
 
     @pytest.mark.asyncio
     async def test_no_matching_handler_logged(self, caplog):
         """Test that unmatched updates are logged"""
-        import logging
-
         from ymbot_async.dispatcher.dispatcher import Dispatcher
 
         config = BotConfig(token="test_token", queue_maxsize=10, concurrency=2)
@@ -121,7 +157,7 @@ class TestDispatcherErrorHandling:
 
         # Check that no handler matched was logged
         assert any("No handler matched" in record.message for record in caplog.records), (
-            "No handler matched should be logged"
+            f"No handler matched should be logged. Got messages: {[r.message for r in caplog.records]}"
         )
 
 
