@@ -1,45 +1,21 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 
-# ============================================================================
-# CODERABBIT MAXIMUM UTILIZATION CONFIG
-# Project: yandex-bot-py (Yandex Messenger Bot - Async Python)
-# Target: Maximum code quality enforcement with aggressive review
-# ============================================================================
-
-# Базовые настройки
 language: "en-US"
 early_access: false
+tone_instructions: "Senior Python Engineer (15y, top 1%). Direct, cite PEPs. Focus: security, performance, async. Flag blocking I/O immediately. Priority: Critical > Security > Perf"
 
-# ============================================================================
-# REVIEWS CONFIGURATION
-# ============================================================================
 reviews:
-  # КРИТИЧНО: Aggressive profile для максимального количества комментариев
-  profile: "assertive"  # Vs "chill" - максимальный nitpicking
-
-  # Request changes workflow - блокировать merge при критических issues
+  profile: "assertive"
   request_changes_workflow: true
-
-  # High-level summary и дополнительный контент
   high_level_summary: true
   high_level_summary_placeholder: "🤖 AI-Generated PR Summary"
-
-  # Fun features (можно отключить если слишком неформально)
   poem: true
   review_status: true
-
-  # Collapse sections для читаемости
-  collapse_walkthrough: false  # Держим развернутым для полного контекста
-
-  # Дополнительные фичи
+  collapse_walkthrough: false
   changed_files_summary: true
-  sequence_diagrams: true  # Для визуализации async flows
+  sequence_diagrams: true
 
-  # ============================================================================
-  # PATH FILTERS - анализировать только релевантный Python код
-  # ============================================================================
   path_filters:
-    # Exclude build artifacts и generated files
     - "!dist/**"
     - "!build/**"
     - "!*.pyc"
@@ -53,8 +29,6 @@ reviews:
     - "!htmlcov/**"
     - "!.coverage"
     - "!coverage.xml"
-
-    # Include only source code и tests
     - "src/**/*.py"
     - "yandex_bot/**/*.py"
     - "tests/**/*.py"
@@ -63,13 +37,7 @@ reviews:
     - "requirements*.txt"
     - ".github/workflows/*.yml"
 
-  # ============================================================================
-  # PATH-SPECIFIC INSTRUCTIONS - детальные требования по типам файлов
-  # ============================================================================
   path_instructions:
-    # -------------------------------------------------------------------------
-    # SOURCE CODE: Core business logic
-    # -------------------------------------------------------------------------
     - path: "src/**/*.py"
       instructions: |
         ## Type Safety & Static Analysis
@@ -124,9 +92,6 @@ reviews:
         - Efficient string concatenation (use join, not +=)
         - Proper use of caching (`@lru_cache`, `@cached_property`)
 
-    # -------------------------------------------------------------------------
-    # YANDEX BOT SPECIFIC: Bot logic и API integration
-    # -------------------------------------------------------------------------
     - path: "yandex_bot/**/*.py"
       instructions: |
         ## API Integration
@@ -149,9 +114,6 @@ reviews:
         - Stateless design where possible
         - Proper logging with structured context (structlog)
 
-    # -------------------------------------------------------------------------
-    # TESTS: Quality и coverage requirements
-    # -------------------------------------------------------------------------
     - path: "tests/**/*.py"
       instructions: |
         ## Test Naming & Structure
@@ -193,9 +155,6 @@ reviews:
           - Serialization/deserialization (roundtrip property)
           - Mathematical operations (commutativity, associativity)
 
-    # -------------------------------------------------------------------------
-    # CONFIGURATION FILES
-    # -------------------------------------------------------------------------
     - path: "pyproject.toml"
       instructions: |
         - Version constraints: use `>=X.Y.Z,<X+1` for dependencies (caret-style)
@@ -215,9 +174,6 @@ reviews:
         - Cache dependencies for faster builds
         - Fail fast: `fail-fast: true` in strategy when appropriate
 
-    # -------------------------------------------------------------------------
-    # MAIN ENTRY POINT
-    # -------------------------------------------------------------------------
     - path: "main.py"
       instructions: |
         - Minimal logic in entry point (delegate to modules)
@@ -227,354 +183,27 @@ reviews:
         - Exception handling at top level (catch-all with logging)
         - Clear error messages for configuration issues
 
-  # ============================================================================
-  # AUTO REVIEW CONFIGURATION
-  # ============================================================================
   auto_review:
     enabled: true
-    drafts: true  # Review draft PRs для раннего feedback
+    drafts: true
     base_branches:
       - main
       - master
       - develop
 
-  # ============================================================================
-  # FINISHING TOUCHES
-  # ============================================================================
-  finishing_touches:
-    # Auto-approve: DISABLED для критичных проектов (оставляем manual approval)
-    auto_approve: false
+  tools:
+    ruff:
+      enabled: true
+    semgrep:
+      enabled: true
+    gitleaks:
+      enabled: true
+    checkov:
+      enabled: true
 
-# ============================================================================
-# PRE-MERGE CHECKS - Agentic validation перед merge
-# ============================================================================
-reviews:
-  pre_merge_checks:
-    # -------------------------------------------------------------------------
-    # SECURITY AUDIT
-    # -------------------------------------------------------------------------
-    - name: "🔒 Security Audit"
-      instructions: |
-        Check for security vulnerabilities:
-
-        **Secrets & Credentials:**
-        - No hardcoded API keys, tokens, passwords in code
-        - No credentials in logs or error messages
-        - Environment variables used for sensitive data
-
-        **Input Validation:**
-        - All external inputs (API, user data, files) validated
-        - No SQL injection risks (use parameterized queries)
-        - No command injection (avoid shell=True, validate inputs)
-        - Proper sanitization of HTML/JSON output
-
-        **Authentication & Authorization:**
-        - No timing attack vulnerabilities in comparisons (use hmac.compare_digest)
-        - Proper session management
-        - No privilege escalation risks
-
-        **Dependencies:**
-        - No known vulnerable dependencies (check requirements.txt)
-        - All dependencies from trusted sources
-
-        **Cryptography:**
-        - No weak crypto algorithms (MD5, SHA1 for security)
-        - Proper use of secrets module for random generation
-        - No hardcoded encryption keys
-
-        BLOCK MERGE if any critical security issue found.
-
-    # -------------------------------------------------------------------------
-    # CODE COVERAGE
-    # -------------------------------------------------------------------------
-    - name: "📊 Code Coverage Check"
-      instructions: |
-        Verify test coverage quality:
-
-        **Coverage Requirements:**
-        - New code: minimum 80% coverage
-        - Critical paths (auth, API, data validation): 100% coverage
-        - No decrease in overall coverage vs base branch
-
-        **Coverage Quality:**
-        - Not just line coverage - check branch coverage
-        - Edge cases covered (empty inputs, None, boundaries)
-        - Error paths covered (exceptions, failures)
-        - Async code: both success and cancellation paths
-
-        **Missing Coverage:**
-        - Identify specific uncovered lines
-        - Flag if critical business logic uncovered
-        - Suggest test cases for uncovered paths
-
-        BLOCK MERGE if coverage decreased or critical paths uncovered.
-
-    # -------------------------------------------------------------------------
-    # PERFORMANCE CHECK
-    # -------------------------------------------------------------------------
-    - name: "⚡ Performance Check"
-      instructions: |
-        Analyze performance implications:
-
-        **Algorithmic Complexity:**
-        - No O(n²) or worse in hot paths
-        - Efficient data structures (set/dict for lookups, not list)
-        - No unnecessary iterations over large datasets
-
-        **Async/Await Patterns:**
-        - No blocking I/O in async functions (open, requests, time.sleep)
-        - Concurrent operations use gather(), not sequential awaits
-        - Proper connection pooling for HTTP clients
-        - No sync-over-async anti-patterns
-
-        **Database Queries:**
-        - No N+1 query patterns
-        - Proper use of indexes
-        - Batch operations where possible
-        - No full table scans in production code
-
-        **Memory Usage:**
-        - No memory leaks (unclosed files, connections, resources)
-        - Use generators for large datasets, not lists
-        - Proper cleanup in finally blocks or context managers
-
-        **Caching:**
-        - Expensive operations cached appropriately
-        - Cache invalidation strategy clear
-        - No unbounded cache growth
-
-        FLAG performance regressions or inefficient patterns.
-
-    # -------------------------------------------------------------------------
-    # ARCHITECTURE COMPLIANCE
-    # -------------------------------------------------------------------------
-    - name: "🏗️ Architecture Compliance"
-      instructions: |
-        Verify architectural principles:
-
-        **SOLID Principles:**
-        - Single Responsibility: classes have one clear purpose
-        - Open/Closed: extensible without modification
-        - Liskov Substitution: subclasses properly substitute base
-        - Interface Segregation: focused interfaces, not fat ones
-        - Dependency Inversion: depend on abstractions, not concretions
-
-        **Separation of Concerns:**
-        - Handlers: presentation logic only (HTTP, CLI)
-        - Services: business logic (pure Python, testable)
-        - Repositories: data access (database, API, files)
-        - No business logic in handlers
-        - No HTTP calls in services (use dependency injection)
-
-        **Dependencies:**
-        - No circular dependencies between modules
-        - Clear dependency direction: handlers → services → repositories
-        - No God objects (classes with too many responsibilities)
-
-        **Code Organization:**
-        - Related functionality grouped in modules
-        - Clear module boundaries
-        - Proper encapsulation (private methods/attributes)
-
-        FLAG architectural violations or technical debt.
-
-    # -------------------------------------------------------------------------
-    # PYTHON BEST PRACTICES
-    # -------------------------------------------------------------------------
-    - name: "🐍 Python Best Practices"
-      instructions: |
-        Enforce Python-specific standards:
-
-        **Code Metrics:**
-        - Functions under 50 lines (recommend refactoring if exceeded)
-        - Cyclomatic complexity under 10 (use radon to measure)
-        - Max 5 parameters per function (use dataclasses for more)
-        - Max nesting depth: 4 levels
-
-        **Type Hints:**
-        - ALL public functions have complete type hints
-        - Use Python 3.11+ syntax (PEP 585, 604)
-        - No `Any` without justification
-        - Proper generic types for collections
-
-        **Pythonic Patterns:**
-        - Use context managers for resources (with statement)
-        - Comprehensions for simple transformations, not loops
-        - Generators for large sequences
-        - No mutable default arguments
-        - Proper use of magic methods (__str__, __repr__, etc.)
-
-        **Error Handling:**
-        - Specific exception types, not bare except
-        - EAFP (Easier to Ask Forgiveness) over LBYL (Look Before You Leap)
-        - Exception messages are descriptive
-
-        **Code Quality:**
-        - No dead code (unused imports, variables, functions)
-        - No commented-out code (use git history)
-        - No print() debugging statements
-        - No TODO comments without GitHub issue reference
-
-        FLAG anti-patterns and code smells.
-
-    # -------------------------------------------------------------------------
-    # ASYNC/AWAIT CORRECTNESS
-    # -------------------------------------------------------------------------
-    - name: "🔄 Async/Await Correctness"
-      instructions: |
-        Specific checks for async Python code:
-
-        **Proper Async Usage:**
-        - All I/O operations are async (httpx, aiofiles, asyncpg)
-        - No blocking stdlib calls in async context:
-          - ❌ open(), requests.*, time.sleep(), socket.*
-          - ✅ aiofiles.open(), httpx.*, asyncio.sleep()
-
-        **Concurrency Patterns:**
-        - Use asyncio.gather() for parallel operations
-        - Proper error handling in gather (return_exceptions=True when needed)
-        - TaskGroup for structured concurrency (Python 3.11+)
-        - No asyncio.create_task() without await or cancellation handling
-
-        **Resource Management:**
-        - All async resources use async context managers
-        - Proper connection pool configuration
-        - Graceful shutdown (cancel tasks, close connections)
-        - No leaked tasks or connections
-
-        **Common Pitfalls:**
-        - No sync-over-async (run_in_executor for sync libs)
-        - No async-over-sync (blocking on event loop)
-        - Proper handling of asyncio.CancelledError
-        - No race conditions (use locks/semaphores properly)
-
-        **Testing:**
-        - Async tests use pytest-asyncio
-        - Mocks are AsyncMock, not Mock
-        - Timeout tests for slow operations
-
-        BLOCK if blocking I/O found in async functions.
-
-    # -------------------------------------------------------------------------
-    # DOCUMENTATION QUALITY
-    # -------------------------------------------------------------------------
-    - name: "📚 Documentation Quality"
-      instructions: |
-        Verify documentation completeness:
-
-        **Docstrings:**
-        - ALL public APIs have Google-style docstrings
-        - Include: Summary, Args (with types), Returns, Raises, Examples
-        - Complex logic explained in docstring
-        - No auto-generated placeholder docstrings
-
-        **Code Comments:**
-        - WHY not WHAT (code should be self-documenting)
-        - Complex algorithms explained
-        - Non-obvious decisions documented
-        - Edge cases and assumptions noted
-
-        **README/Documentation:**
-        - If public API changed, README must be updated
-        - Examples are accurate and runnable
-        - Breaking changes documented
-
-        **Type Hints as Documentation:**
-        - Type hints are accurate and helpful
-        - Complex types have explanatory comments
-
-        FLAG missing or inadequate documentation.
-
-# ============================================================================
-# CHAT CONFIGURATION
-# ============================================================================
 chat:
   auto_reply: true
 
-# ============================================================================
-# KNOWLEDGE BASE
-# ============================================================================
 knowledge_base:
-  # Learnings - адаптивное обучение на основе взаимодействий
   learnings:
-    scope: "auto"  # Для public repos - только local learnings
-
-  # Code guidelines - автоматическое детектирование стандартов
-  code_guidelines:
-    enabled: true
-    file_patterns:
-      - ".cursorrules"
-      - "CLAUDE.md"
-      - ".github/copilot-instructions.md"
-      - "docs/coding-standards.md"
-      - "CONTRIBUTING.md"
-
-# ============================================================================
-# TOOLS INTEGRATION - SAST/Linters
-# ============================================================================
-tools:
-  # Python linter (fast, replaces flake8/isort/pyupgrade)
-  ruff:
-    enabled: true
-
-  # Static type checker
-  mypy:
-    enabled: true
-
-  # Security linter
-  semgrep:
-    enabled: true
-
-  # Secrets detection
-  gitleaks:
-    enabled: true
-
-  # Infrastructure-as-Code security
-  checkov:
-    enabled: true
-
-# ============================================================================
-# TONE CUSTOMIZATION
-# ============================================================================
-tone_instructions: |
-  You are a Lead Python Software Engineer with 15+ years of experience, ranked in the top 1% globally.
-
-  **Review Philosophy:**
-  - Be direct, precise, and technically rigorous
-  - Provide concrete examples and code snippets, not vague suggestions
-  - Reference authoritative sources: PEPs, official docs, design patterns
-  - Focus on: security, performance, maintainability, testability
-  - Identify technical debt explicitly and suggest refactoring
-
-  **Communication Style:**
-  - Constructive but uncompromising on critical issues
-  - Explain the "why" behind each suggestion with technical rationale
-  - Use emojis for visual structure (⚠️ critical, 💡 suggestion, ✅ good)
-  - Prioritize feedback: 🔴 Critical bugs > 🟡 Security > 🟢 Performance > 🔵 Style
-
-  **Technical Depth:**
-  - Cite specific PEPs when relevant (e.g., PEP 8, 257, 484, 585, 604)
-  - Reference design patterns by name (Factory, Strategy, Repository, etc.)
-  - Mention frameworks/libraries best practices (asyncio, httpx, pydantic)
-  - Flag anti-patterns and code smells explicitly
-
-  **Actionability:**
-  - Every comment must be actionable (what to change, how to change it)
-  - Provide before/after code snippets for clarity
-  - For complex refactorings, suggest step-by-step approach
-  - Link to relevant documentation when applicable
-
-  **Consistency Enforcement:**
-  - Before responding, review all existing Learnings
-  - Apply Learnings consistently across the codebase
-  - Explicitly mention which Learning you're applying when relevant
-  - Suggest new Learnings when patterns emerge
-
-  **Async Python Expertise:**
-  - Deep knowledge of asyncio internals, event loop, coroutines
-  - Identify blocking I/O immediately (critical issue)
-  - Suggest proper async patterns (gather, TaskGroup, Semaphore)
-  - Flag race conditions and concurrency bugs
-
-  Remember: Code will be read 10x more than written. Optimize for maintainability.
-  Your goal is to ensure production-ready, secure, performant, and maintainable code.
+    scope: "auto"
