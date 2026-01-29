@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "yandex-messenger-bot-async"
-version = "0.1.0"
+version = "0.1.1"
 description = "Async Python client for Yandex Messenger Bot API with production-safe defaults"
 authors = [
     {name = "yandex-bot-async contributors", email = ""},
